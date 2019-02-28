@@ -165,7 +165,6 @@ namespace ApolloLensLibrary.SignallingServer
                 this.LostPeerConnection?.Invoke(this, this.Id);
             }
 
-
             private async Task SendHeartBeat()
             {
                 await MessageProtocol.SendMessageToStreamAsync(this.OutStream, MessageProtocol.MessageType.Ping, null);

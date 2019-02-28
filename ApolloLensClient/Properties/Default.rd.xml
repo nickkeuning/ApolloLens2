@@ -22,6 +22,9 @@
       the application package. The asterisks are not wildcards.
     -->
     <Assembly Name="*Application*" Dynamic="Required All" />
+    <Type Name="Org.WebRtc.RTCSdpType" MarshalObject="Required All" />
+    <Type Name="Org.WebRtc.RTCIceCandidate" MarshalObject="Required All" />
+    <Type Name="Org.WebRtc.RTCSessionDescription" MarshalObject="Required All" />
     
     
     <!-- Add your application specific runtime directives here. -->

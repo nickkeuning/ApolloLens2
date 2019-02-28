@@ -1,0 +1,75 @@
+﻿<Page
+    x:Class="ApolloLensClient.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:ApolloLensClient"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition 
+                Width="auto" />
+            <ColumnDefinition
+                Width="*" />
+            <ColumnDefinition
+                Width="auto" />
+        </Grid.ColumnDefinitions>
+        <StackPanel
+            x:Name="SettingsPanel"
+            Grid.Column="0"
+            Margin="12"
+            Width="auto"
+            HorizontalAlignment="Left">
+            <TextBox
+                x:Name="ServerAddressTextBox"
+                Text="{Binding ServerAddress, Mode=TwoWay}"
+                Margin="12,12,12,0" />
+            <TextBox
+                x:Name="ServerPortTextBox"
+                Text="{Binding ServerPort, Mode=TwoWay}"
+                Margin="12,12,12,0" />
+            <Button
+                x:Name="ServerConnectButton"
+                Click="ServerConnectButton_Click"
+                Content="Connect to Signalling Server"
+                HorizontalAlignment="Stretch"
+                Margin="12,12,12,0" />
+            <Button
+                x:Name="ClientConnectButton"
+                Content="Connect to Source"
+                Click="ClientConnectButton_Click"
+                HorizontalAlignment="Stretch"
+                Margin="12, 12, 12, 0" />
+            <Button
+                x:Name="PlainMessageButton"
+                Click="PlainMessageButton_Click"
+                Content="Say Hi"
+                HorizontalAlignment="Stretch"
+                Margin="12,12,12,0" />
+            <ToggleButton
+                x:Name="LoggerToggle"
+                IsChecked="{Binding Logging, Mode=TwoWay}"
+                Content="Logging"
+                Click="LoggerToggle_Click"
+                HorizontalAlignment="Stretch"
+                Margin="12, 12, 12, 0" />
+        </StackPanel>
+        <MediaElement
+            x:Name="RemoteVideo"
+            Grid.Column="1"
+            HorizontalAlignment="Stretch"
+            RealTimePlayback="True" />
+        <TextBox
+            Grid.Column="2"
+            x:Name="OutputTextBox"
+            VerticalAlignment="Stretch"
+            HorizontalAlignment="Right"
+            Margin="10"
+            Width="300"
+            IsReadOnly="True"
+            TextWrapping="Wrap"
+            ScrollViewer.VerticalScrollBarVisibility="Auto" />
+    </Grid>
+</Page>

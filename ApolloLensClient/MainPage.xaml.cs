@@ -14,6 +14,7 @@ using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 using ApolloLensLibrary.Conducting;
 using ApolloLensLibrary.Utilities;
+using Windows.Storage;
 
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
@@ -25,9 +26,13 @@ namespace ApolloLensClient
     /// </summary>
     public sealed partial class MainPage : Page
     {
-        public string ServerAddress { get; set; } = "10.0.0.192";
-        public string ServerPort { get; set; } = "8888";
         public bool Logging { get; set; } = true;
+        public bool ConnectAzure { get; set; } = true;
+        public string CustomAddress { get; set; }
+
+        private string CustomServerSettingsKey { get; } = "CustomServerAddress";
+        private string ServerAddress => this.ConnectAzure ? "wss://apollosignalling.azurewebsites.net/" : $"ws://{this.CustomAddress}/";
+
 
         private Caller Caller { get; }
 
@@ -42,6 +47,12 @@ namespace ApolloLensClient
 
             this.Caller = new Caller(this.Dispatcher, this.RemoteVideo);
             this.Caller.RemoteStreamAdded += Caller_RemoteStreamAdded;
+
+            if (!ApplicationData.Current.LocalSettings.Values.TryGetValue(this.CustomServerSettingsKey, out object value))
+            {
+                ApplicationData.Current.LocalSettings.Values["CustomServerAddress"] = null;
+            }
+            this.CustomAddress = (string)value;
         }
 
 
@@ -79,24 +90,44 @@ namespace ApolloLensClient
 
         private async void ServerConnectButton_Click(object sender, RoutedEventArgs e)
         {
-            this.ServerConnectButton.Visibility = Visibility.Collapsed;
+            this.ServerConnectButton.ToggleVisibility();
+            this.RemoteServerToggle.ToggleVisibility();
+            this.CustomServerAddressBox.Hide();
+
             Logger.Log("Connecting to signalling server...");
-            await this.Caller.ConnectToSignallingServer(this.ServerAddress, this.ServerPort);
+            await this.Caller.ConnectToSignallingServer(this.ServerAddress);
+
+            this.SourceConnectButton.ToggleVisibility();
+            this.SayHiButton.ToggleVisibility();
         }
 
-        private async void ClientConnectButton_Click(object sender, RoutedEventArgs e)
+        private async void SayHiButton_Click(object sender, RoutedEventArgs e)
         {
-            this.ClientConnectButton.Visibility = Visibility.Collapsed;
+            await this.Caller.SayHi();
+            Logger.Log("Said hello...");
+        }
+
+        private async void SourceConnectButton_Click(object sender, RoutedEventArgs e)
+        {
+            this.SourceConnectButton.Visibility = Visibility.Collapsed;
             Logger.Log("Initializing WebRtc...");
             await this.Caller.Initialize();
             Logger.Log("Connecting to WebRtc remote source...");
             await this.Caller.StartPeerConnection();
+
+            this.SettingsPanel.ToggleVisibility();
         }
 
-        private async void PlainMessageButton_Click(object sender, RoutedEventArgs e)
+        private void CustomServerAddressBox_SelectionChanged(object sender, RoutedEventArgs e)
         {
-            await this.Caller.SayHi();
-            Logger.Log("Said hello...");
+            var textBox = (TextBox)sender;
+            ApplicationData.Current.LocalSettings.Values[this.CustomServerSettingsKey] = textBox.Text;
+        }
+
+
+        private void RemoteServerToggle_Toggled(object sender, RoutedEventArgs e)
+        {
+            this.CustomServerAddressBox.ToggleVisibility();
         }
 
         #endregion

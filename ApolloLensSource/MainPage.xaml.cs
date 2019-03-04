@@ -14,7 +14,6 @@ using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 using ApolloLensLibrary.Conducting;
 using ApolloLensLibrary.Utilities;
-using ApolloLensLibrary.SignallingServer;
 
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
@@ -27,8 +26,10 @@ namespace ApolloLensSource
     public sealed partial class MainPage : Page
     {
         public bool Logging { get; set; } = true;
-        public string Port { get; set; } = "8888";
-        private Server Server { get; set; }
+        public bool ConnectAzure { get; set; } = true;
+
+
+        private string ServerAddress => this.ConnectAzure ? "wss://apollosignalling.azurewebsites.net/" : "ws://localhost/";
         private Callee Callee { get; set; }
 
         public MainPage()
@@ -39,8 +40,6 @@ namespace ApolloLensSource
             {
                 Logger.WriteMessage += this.WriteLine;
             }
-
-            this.Server = new Server(this.Port);
             this.Callee = new Callee(this.Dispatcher);
         }
 
@@ -70,19 +69,36 @@ namespace ApolloLensSource
             }
         }
 
-        private async void StartServerButton_Click(object sender, RoutedEventArgs e)
+        private async void ConnectToServer_Click(object sender, RoutedEventArgs e)
         {
-            this.StartServerButton.Visibility = Visibility.Collapsed;
-            await this.Server.Start();
-            await this.Callee.ConnectToSignallingServer("localhost", this.Port);
+            this.ConnectToServerButton.ToggleVisibility();
+            this.RemoteServerToggle.ToggleVisibility();
+
+            await this.Callee.ConnectToSignallingServer(this.ServerAddress);
             await this.Callee.Initialize();
+
+            this.DisconnectFromServerButton.ToggleVisibility();
+            this.SayHiButton.ToggleVisibility();
         }
 
-        private async void PlainMessageButton_Click(object sender, RoutedEventArgs e)
+        private async void SayHiButton_Click(object sender, RoutedEventArgs e)
         {
             await this.Callee.SayHi();
         }
 
+        private void DisconnectFromServerButton_Click(object sender, RoutedEventArgs e)
+        {
+            this.DisconnectFromServerButton.ToggleVisibility();
+            this.SayHiButton.ToggleVisibility();
+
+            this.Callee.DisconnectFromSignallingServer();
+
+            this.ConnectToServerButton.ToggleVisibility();
+            this.RemoteServerToggle.ToggleVisibility();
+        }
+
         #endregion
+
+
     }
 }

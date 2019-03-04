@@ -123,12 +123,12 @@
     <Compile Include="Conducting\Conductor.cs" />
     <Compile Include="Conducting\Wrapper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Signalling\Protocol\MessageProtocol.cs" />
-    <Compile Include="Signalling\Protocol\TcpProtocol.cs" />
-    <Compile Include="SignallingServer\Server.cs" />
+    <Compile Include="Signalling\MessageProtocol.cs" />
     <Compile Include="Signalling\Signaller.cs" />
+    <Compile Include="Signalling\SignallerInterfaces.cs" />
     <Compile Include="Utilities\Logger.cs" />
     <Compile Include="Utilities\TaskExtensions.cs" />
+    <Compile Include="Utilities\VisibilityExtensions.cs" />
     <EmbeddedResource Include="Properties\Library.rd.xml" />
   </ItemGroup>
   <ItemGroup>

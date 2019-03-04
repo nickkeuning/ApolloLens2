@@ -12,29 +12,31 @@
             Margin="12"
             Width="auto"
             HorizontalAlignment="Left">
-            <TextBox
-                x:Name="PortTextBox"
-                Text="{Binding Port, Mode=TwoWay}"
-                Margin="12,12,12,0" />
+            <ToggleSwitch
+                x:Name="RemoteServerToggle"
+                Margin="12,12,12,0"
+                IsOn="{Binding ConnectAzure, Mode=TwoWay}"
+                HorizontalAlignment="Stretch">Connect to Azure</ToggleSwitch>
             <Button
-                x:Name="StartServerButton"
-                Click="StartServerButton_Click"
-                Content="Start Server"
+                x:Name="ConnectToServerButton"
+                Click="ConnectToServer_Click"
+                Content="Connect to Server"
                 HorizontalAlignment="Stretch"
                 Margin="12,12,12,0" />
             <Button
-                x:Name="PlainMessageButton"
-                Click="PlainMessageButton_Click"
+                x:Name="DisconnectFromServerButton"
+                Click="DisconnectFromServerButton_Click"
+                Content="Disconnect from Server"
+                HorizontalAlignment="Stretch"
+                Margin="12,12,12,0" 
+                Visibility="Collapsed"/>
+            <Button
+                x:Name="SayHiButton"
+                Click="SayHiButton_Click"
                 Content="Say Hi"
                 HorizontalAlignment="Stretch"
-                Margin="12,12,12,0" />
-            <ToggleButton
-                x:Name="LoggerToggle"
-                IsChecked="{Binding Logging, Mode=TwoWay}"
-                Content="Logging"
-                Click="LoggerToggle_Click"
-                HorizontalAlignment="Stretch"
-                Margin="12, 12, 12, 0" />
+                Margin="12,12,12,0"
+                Visibility="Collapsed"/>
         </StackPanel>
         <TextBox
             x:Name="OutputTextBox"

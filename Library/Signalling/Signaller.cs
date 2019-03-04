@@ -1,143 +1,129 @@
-﻿using ApolloLensLibrary.Signalling.Protocol;
-using ApolloLensLibrary.Utilities;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Org.WebRtc;
 using System;
 using System.Threading.Tasks;
-using Windows.Data.Json;
-using Windows.Networking;
 using Windows.Networking.Sockets;
-using System.Threading;
 using Windows.Storage.Streams;
-using MessageType = ApolloLensLibrary.Signalling.Protocol.MessageProtocol.MessageType;
+using MessageType = ApolloLensLibrary.Signalling.MessageProtocol.MessageType;
 
 namespace ApolloLensLibrary.Signalling
 {
-    public class Signaller : ICalleeSignaller, ICallerSignaller
+    public class WebSocketSignaller : ICallerSignaller, ICalleeSignaller
     {
-
 
         public event EventHandler<RTCSessionDescription> ReceivedOffer;
         public event EventHandler<RTCSessionDescription> ReceivedAnswer;
         public event EventHandler<RTCIceCandidate> ReceivedIceCandidate;
         public event EventHandler<string> ReceivedPlainMessage;
 
-        private StreamSocket Socket { get; set; }
-        private string ServerAddress { get; }
-        private string Port { get; }
+        private MessageWebSocket WebSocket { get; }
 
-        private Task PollTask;
-        private CancellationTokenSource CancellationTokenSource { get; }
-
-        private Signaller(string serverAddress, string serverPort)
+        public static IBaseSignaller CreateSignaller()
         {
-            this.Port = serverPort;
-            this.ServerAddress = serverAddress;
-            this.Socket = new StreamSocket();
-            this.CancellationTokenSource = new CancellationTokenSource();
+            return new WebSocketSignaller();
         }
 
-        public static IBaseSignaller CreateSignaller(string serverAddress, string serverPort)
+        private WebSocketSignaller()
         {
-            return new Signaller(serverAddress, serverPort);
+            this.WebSocket = new MessageWebSocket();
+            this.WebSocket.Control.MessageType = SocketMessageType.Utf8;
+            this.WebSocket.MessageReceived += this.WebSocket_MessageReceived;
+            this.WebSocket.Closed += this.WebSocket_Closed;
         }
 
-        public async Task ConnectToSignallingServer()
+        public async Task ConnectToServer(string address)
         {
-            var hostname = new HostName(this.ServerAddress);
-            await this.Socket.ConnectAsync(hostname, this.Port);
-            this.PollTask = Task.Run(() => this.LongPoll());
+            await this.WebSocket.ConnectAsync(new Uri(address));
         }
 
-        public async Task SendPlainMessage(string message)
+        public void DisconnectFromServer()
         {
-            await MessageProtocol.SendMessageToStreamAsync(this.Socket.OutputStream, MessageType.Plain, message);
+            this.WebSocket.Close(1000, "");
+        }        
+
+        public async Task SendPlainMessage(string messageContents)
+        {
+            await this.SendMessage(messageContents, MessageType.Plain);
         }
 
         public async Task SendOffer(RTCSessionDescription offer)
         {
             var messageContents = JsonConvert.SerializeObject(offer);
-            await MessageProtocol.SendMessageToStreamAsync(this.Socket.OutputStream, MessageType.Offer, messageContents);
+            await this.SendMessage(messageContents, MessageType.Offer);
         }
 
         public async Task SendAnswer(RTCSessionDescription answer)
         {
             var messageContents = JsonConvert.SerializeObject(answer);
-            await MessageProtocol.SendMessageToStreamAsync(this.Socket.OutputStream, MessageType.Answer, messageContents);
+            await this.SendMessage(messageContents, MessageType.Answer);
         }
 
         public async Task SendIceCandidate(RTCIceCandidate iceCandidate)
         {
             var messageContents = JsonConvert.SerializeObject(iceCandidate);
-            await MessageProtocol.SendMessageToStreamAsync(this.Socket.OutputStream, MessageType.IceCandidate, messageContents);
+            await this.SendMessage(messageContents, MessageType.IceCandidate);
         }
 
-        private async Task LongPoll()
+        private async Task SendMessage(string message, MessageType messageType)
         {
-            while (true)
+            var wrappedMessage = MessageProtocol.WrapMessage(message, messageType);
+
+            using (var dataWriter = new DataWriter(this.WebSocket.OutputStream))
             {
-                var message = await MessageProtocol.ReadMessageFromStreamAsync(this.Socket.InputStream, this.CancellationTokenSource.Token);
-                switch (message.Type)
-                {
-                    case MessageType.Offer:
-                        {
-                            var offer = JsonConvert.DeserializeObject<RTCSessionDescription>(message.Contents);
-                            this.ReceivedOffer?.Invoke(this, offer);
-                            break;
-                        }
-                    case MessageType.Answer:
-                        {
-                            var answer = JsonConvert.DeserializeObject<RTCSessionDescription>(message.Contents);
-                            this.ReceivedAnswer?.Invoke(this, answer);
-                            break;
-                        }
-                    case MessageType.IceCandidate:
-                        {
-                            var iceCandidate = JsonConvert.DeserializeObject<RTCIceCandidate>(message.Contents);
-                            this.ReceivedIceCandidate?.Invoke(this, iceCandidate);
-                            break;
-                        }
-                    case MessageType.Plain:
-                        {
-                            this.ReceivedPlainMessage?.Invoke(this, message.Contents);
-                            break;
-                        }
-                    case MessageType.PingAnswer:
-                        {
-                            await MessageProtocol.SendMessageToStreamAsync(this.Socket.OutputStream, MessageType.PingAnswer, null);
-                            break;
-                        }
-                    default:
-                        {
-                            throw new Exception("Server received wrong message type.");
-                        }
-                }
+                dataWriter.WriteString(wrappedMessage);
+                await dataWriter.StoreAsync();
+                dataWriter.DetachStream();
             }
         }
 
+        private void WebSocket_MessageReceived(MessageWebSocket sender, MessageWebSocketMessageReceivedEventArgs args)
+        {
+            try
+            {
+                using (DataReader dataReader = args.GetDataReader())
+                {
+                    dataReader.UnicodeEncoding = UnicodeEncoding.Utf8;
+                    var rawMessage = dataReader.ReadString(dataReader.UnconsumedBufferLength);
+                    var message = MessageProtocol.UnwrapMessage(rawMessage);
 
-    }
+                    switch (message.Type)
+                    {
+                        case MessageType.Answer:
+                            {
+                                var answer = JsonConvert.DeserializeObject<RTCSessionDescription>(message.Contents);
+                                this.ReceivedAnswer?.Invoke(this, answer);
+                                break;
+                            }
+                        case MessageType.Offer:
+                            {
+                                var offer = JsonConvert.DeserializeObject<RTCSessionDescription>(message.Contents);
+                                this.ReceivedOffer?.Invoke(this, offer);
+                                break;
+                            }
+                        case MessageType.IceCandidate:
+                            {
+                                var candidate = JsonConvert.DeserializeObject<RTCIceCandidate>(message.Contents);
+                                this.ReceivedIceCandidate?.Invoke(this, candidate);
+                                break;
+                            }
+                        case MessageType.Plain:
+                            {
+                                this.ReceivedPlainMessage(this, message.Contents);
+                                break;
+                            }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Windows.Web.WebErrorStatus webErrorStatus = WebSocketError.GetStatus(ex.GetBaseException().HResult);
+                // Add additional code here to handle exceptions.
+            }
+        }
 
-    public interface ICallerSignaller : IBaseSignaller
-    {
-        Task SendOffer(RTCSessionDescription offer);
-        event EventHandler<RTCSessionDescription> ReceivedAnswer;
-    }
-
-    public interface ICalleeSignaller : IBaseSignaller
-    {
-        Task SendAnswer(RTCSessionDescription answer);
-        event EventHandler<RTCSessionDescription> ReceivedOffer;
-    }
-
-    public interface IBaseSignaller
-    {
-        Task ConnectToSignallingServer();
-
-        Task SendIceCandidate(RTCIceCandidate iceCandidate);
-        Task SendPlainMessage(string message);
-
-        event EventHandler<RTCIceCandidate> ReceivedIceCandidate;
-        event EventHandler<string> ReceivedPlainMessage;
+        private void WebSocket_Closed(IWebSocket sender, WebSocketClosedEventArgs args)
+        {
+            this.WebSocket.Dispose();
+        }
     }
 }

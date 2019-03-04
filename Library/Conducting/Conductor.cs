@@ -13,16 +13,16 @@ namespace ApolloLensLibrary.Conducting
 {
     public abstract class Conductor
     {
-        public CoreDispatcher CoreDispatcher { get; }
-        public Wrapper Wrapper { get; }
+        protected CoreDispatcher CoreDispatcher { get; }
+        protected Wrapper Wrapper { get; }
 
-        public IBaseSignaller Signaller { get; set; }
+        protected IBaseSignaller Signaller { get; set; }
 
         protected RTCPeerConnection PeerConnection { get; set; }
         protected List<RTCIceCandidate> IceCandidates { get; } = new List<RTCIceCandidate>();
 
 
-        public Conductor(CoreDispatcher coreDispatcher)
+        protected Conductor(CoreDispatcher coreDispatcher)
         {
             this.CoreDispatcher = coreDispatcher;
             this.Wrapper = Wrapper.Instance;
@@ -33,14 +33,18 @@ namespace ApolloLensLibrary.Conducting
             await this.Wrapper.Initialize(this.CoreDispatcher);
         }        
 
-        //public abstract Task ConnectToSignallingServer(string address, string port);
-        public async Task ConnectToSignallingServer(string address, string port)
+        protected async Task ConnectToSignallingServer(string address)
         {
-            this.Signaller = Signalling.Signaller.CreateSignaller(address, port);
-            await this.Signaller.ConnectToSignallingServer();
+            this.Signaller = WebSocketSignaller.CreateSignaller();
+            await this.Signaller.ConnectToServer(address);
 
             this.Signaller.ReceivedIceCandidate += this.Signaller_ReceivedIceCandidate;
             this.Signaller.ReceivedPlainMessage += this.Signaller_ReceivedPlain;
+        }
+
+        public void DisconnectFromSignallingServer()
+        {
+            this.Signaller.DisconnectFromServer();
         }
 
         protected void Signaller_ReceivedPlain(object sender, string e)
@@ -87,9 +91,9 @@ namespace ApolloLensLibrary.Conducting
             this.RemoteVideo = remoteVideo;
         }
 
-        public new async Task ConnectToSignallingServer(string address, string port)
+        public new async Task ConnectToSignallingServer(string address) 
         {
-            await base.ConnectToSignallingServer(address, port);
+            await base.ConnectToSignallingServer(address);
             this.Signaller = (ICallerSignaller)base.Signaller;
             this.Signaller.ReceivedAnswer += this.Signaller_ReceivedAnswer;
         }
@@ -145,9 +149,9 @@ namespace ApolloLensLibrary.Conducting
 
         public Callee(CoreDispatcher coreDispatcher) : base(coreDispatcher) { }
 
-        public new async Task ConnectToSignallingServer(string address, string port)
+        public new async Task ConnectToSignallingServer(string address)
         {
-            await base.ConnectToSignallingServer(address, port);
+            await base.ConnectToSignallingServer(address);
             this.Signaller = (ICalleeSignaller)base.Signaller;
             this.Signaller.ReceivedOffer += this.Signaller_ReceivedOffer;
         }

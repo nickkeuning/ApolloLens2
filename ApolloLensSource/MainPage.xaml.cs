@@ -53,6 +53,20 @@ namespace ApolloLensSource
             });
         }
 
+        private void ToggleDisconnectedStateButtons()
+        {
+            this.ConnectToServerButton.ToggleVisibility();
+            this.RemoteServerToggle.ToggleVisibility();
+        }
+
+        private void ToggleConnectedStateButtons()
+        {
+            this.DisconnectFromServerButton.ToggleVisibility();
+            this.SayHiButton.ToggleVisibility();
+            this.SetToHighestButton.ToggleVisibility();
+            this.SetToLowestButton.ToggleVisibility();
+        }
+
         #endregion
 
         #region UI_Handlers
@@ -71,14 +85,12 @@ namespace ApolloLensSource
 
         private async void ConnectToServer_Click(object sender, RoutedEventArgs e)
         {
-            this.ConnectToServerButton.ToggleVisibility();
-            this.RemoteServerToggle.ToggleVisibility();
+            this.ToggleDisconnectedStateButtons();
 
             await this.Callee.ConnectToSignallingServer(this.ServerAddress);
             await this.Callee.Initialize();
 
-            this.DisconnectFromServerButton.ToggleVisibility();
-            this.SayHiButton.ToggleVisibility();
+            this.ToggleConnectedStateButtons();
         }
 
         private async void SayHiButton_Click(object sender, RoutedEventArgs e)
@@ -88,17 +100,25 @@ namespace ApolloLensSource
 
         private void DisconnectFromServerButton_Click(object sender, RoutedEventArgs e)
         {
-            this.DisconnectFromServerButton.ToggleVisibility();
-            this.SayHiButton.ToggleVisibility();
+            this.ToggleConnectedStateButtons();
 
             this.Callee.DisconnectFromSignallingServer();
 
-            this.ConnectToServerButton.ToggleVisibility();
-            this.RemoteServerToggle.ToggleVisibility();
+            this.ToggleDisconnectedStateButtons();
+        }        
+
+        private async void SetToHighestButton_Click(object sender, RoutedEventArgs e)
+        {
+            await this.Callee.SetToHighest();
+            Logger.Log("Set bitrate to highest available...");
+        }        
+
+        private async void SetToLowestButton_Click(object sender, RoutedEventArgs e)
+        {
+            await this.Callee.SetToLowest();
+            Logger.Log("Set bitrate to lowest available...");
         }
 
         #endregion
-
-
     }
 }

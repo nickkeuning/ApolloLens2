@@ -15,6 +15,7 @@ namespace ApolloLensLibrary.Signalling
         public event EventHandler<RTCSessionDescription> ReceivedAnswer;
         public event EventHandler<RTCIceCandidate> ReceivedIceCandidate;
         public event EventHandler<string> ReceivedPlainMessage;
+        public event EventHandler ReceivedShutdown;
 
         private MessageWebSocket WebSocket { get; }
 
@@ -64,6 +65,11 @@ namespace ApolloLensLibrary.Signalling
             await this.SendMessage(messageContents, MessageType.IceCandidate);
         }
 
+        public async Task SendShutdown()
+        {
+            await this.SendMessage("", MessageType.Shutdown);
+        }
+
         private async Task SendMessage(string message, MessageType messageType)
         {
             var wrappedMessage = MessageProtocol.WrapMessage(message, messageType);
@@ -109,6 +115,11 @@ namespace ApolloLensLibrary.Signalling
                         case MessageType.Plain:
                             {
                                 this.ReceivedPlainMessage(this, message.Contents);
+                                break;
+                            }
+                        case MessageType.Shutdown:
+                            {
+                                this.ReceivedShutdown?.Invoke(this, EventArgs.Empty);
                                 break;
                             }
                     }

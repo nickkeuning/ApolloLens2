@@ -1,0 +1,74 @@
+﻿<Page
+    x:Class="ApolloLensBasic.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:ApolloLensBasic"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    <Page.Resources>
+        <Style
+            x:Key="MarginAndStretch"
+            TargetType="FrameworkElement">
+            <Setter
+                Property="Margin"
+                Value="12,12,12,0" />
+            <Setter
+                Property="HorizontalAlignment"
+                Value="Stretch" />
+        </Style>
+    </Page.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition
+                Width="auto" />
+            <ColumnDefinition
+                Width="*" />
+        </Grid.ColumnDefinitions>
+        <StackPanel
+            Grid.Column="0"
+            HorizontalAlignment="Left">
+            <Button
+                x:Name="InitializeButton"
+                Click="InitializeButton_Click"
+                Content="Initialize"
+                Style="{StaticResource MarginAndStretch}" />
+            <Button
+                x:Name="GetMediaStreamButton"
+                Click="GetMediaStreamButton_Click"
+                Content="Get Media Stream"
+                Style="{StaticResource MarginAndStretch}" />
+            <Button
+                x:Name="DestroyMedia"
+                Click="DestroyMedia_Click"
+                Content="Destroy Media"
+                Style="{StaticResource MarginAndStretch}" />
+            <Button
+                x:Name="SetToHighest"
+                Click="SetToHighest_Click"
+                Content="Set to Highest Bitrate"
+                Style="{StaticResource MarginAndStretch}" />
+            <Button
+                x:Name="SetToLowest"
+                Click="SetToLowest_Click"
+                Content="Set to Lowest Bitrate"
+                Style="{StaticResource MarginAndStretch}" />
+            <Button
+                x:Name="ShowVideo"
+                Click="ShowVideo_Click"
+                Content="Show Video"
+                Style="{StaticResource MarginAndStretch}" />
+            <Button
+                x:Name="HideVideo"
+                Click="HideVideo_Click"
+                Content="Hide Video"
+                Style="{StaticResource MarginAndStretch}" />
+        </StackPanel>
+        <MediaElement
+            Grid.Column="1"
+            Style="{StaticResource MarginAndStretch}"
+            x:Name="LocalVideo"
+            RealTimePlayback="True" />
+    </Grid>
+</Page>

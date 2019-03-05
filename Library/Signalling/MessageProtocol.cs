@@ -47,7 +47,8 @@ namespace ApolloLensLibrary.Signalling
             Offer,
             Answer,
             IceCandidate,
-            Plain
+            Plain,
+            Shutdown
         }
 
         public class RtcSignallingMessage

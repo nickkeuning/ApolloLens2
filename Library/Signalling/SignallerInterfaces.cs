@@ -27,8 +27,10 @@ namespace ApolloLensLibrary.Signalling
 
         Task SendIceCandidate(RTCIceCandidate iceCandidate);
         Task SendPlainMessage(string message);
+        Task SendShutdown();
 
         event EventHandler<RTCIceCandidate> ReceivedIceCandidate;
         event EventHandler<string> ReceivedPlainMessage;
+        event EventHandler ReceivedShutdown;
     }
 }

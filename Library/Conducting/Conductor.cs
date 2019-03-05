@@ -31,7 +31,22 @@ namespace ApolloLensLibrary.Conducting
         public async Task Initialize()
         {
             await this.Wrapper.Initialize(this.CoreDispatcher);
-        }        
+        }
+
+        public async Task ShutDown()
+        {
+            await this.Signaller.SendShutdown();
+        }
+
+        public async Task SetToHighest()
+        {
+            await this.Wrapper.SetToHighestBitrate();
+        }
+
+        public async Task SetToLowest()
+        {
+            await this.Wrapper.SetToLowestBitrate();
+        }
 
         protected async Task ConnectToSignallingServer(string address)
         {
@@ -40,6 +55,12 @@ namespace ApolloLensLibrary.Conducting
 
             this.Signaller.ReceivedIceCandidate += this.Signaller_ReceivedIceCandidate;
             this.Signaller.ReceivedPlainMessage += this.Signaller_ReceivedPlain;
+            this.Signaller.ReceivedShutdown += this.Signaller_ReceivedShutdown;
+        }
+
+        private async void Signaller_ReceivedShutdown(object sender, EventArgs e)
+        {
+            await this.Wrapper.DestroyUserMediaStream();
         }
 
         public void DisconnectFromSignallingServer()
@@ -122,6 +143,7 @@ namespace ApolloLensLibrary.Conducting
             this.PeerConnection.OnAddStream += PeerConnection_OnAddStream;
 
             // Attach local media to new connection
+            await this.Wrapper.PrepareUserMediaStream();
             this.PeerConnection.AddStream(this.Wrapper.MediaStream);
 
             // Start the WebRtc connection handshake
@@ -129,6 +151,7 @@ namespace ApolloLensLibrary.Conducting
             await this.PeerConnection.SetLocalDescription(localDescription);
             await this.Signaller.SendOffer(localDescription);
             Logger.Log("Offer sent...");
+            await this.Wrapper.DestroyUserMediaStream();
         }
 
         private void PeerConnection_OnAddStream(MediaStreamEvent evt)
@@ -166,7 +189,7 @@ namespace ApolloLensLibrary.Conducting
                 }
             );
 
-            // Start media capture and add to connection
+            await this.Wrapper.PrepareUserMediaStream();
             this.PeerConnection.AddStream(this.Wrapper.MediaStream);
 
             await this.PeerConnection.SetRemoteDescription(offer);

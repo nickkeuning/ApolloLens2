@@ -40,13 +40,15 @@ namespace ApolloLensClient
         {
             this.DataContext = this;
             this.InitializeComponent();
+            Application.Current.Suspending += this.Current_Suspending;
+
             if (this.Logging)
             {
                 Logger.WriteMessage += this.WriteLine;
             }
 
             this.Caller = new Caller(this.Dispatcher, this.RemoteVideo);
-            this.Caller.RemoteStreamAdded += Caller_RemoteStreamAdded;
+            this.Caller.RemoteStreamAdded += this.Caller_RemoteStreamAdded;
 
             if (!ApplicationData.Current.LocalSettings.Values.TryGetValue(this.CustomServerSettingsKey, out object value))
             {
@@ -54,6 +56,12 @@ namespace ApolloLensClient
             }
             this.CustomAddress = (string)value;
         }
+
+        private async void Current_Suspending(object sender, Windows.ApplicationModel.SuspendingEventArgs e)
+        {
+            await this.Caller.ShutDown();
+        }
+
 
 
         #region Utilities

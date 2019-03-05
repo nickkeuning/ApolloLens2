@@ -37,6 +37,20 @@
                 HorizontalAlignment="Stretch"
                 Margin="12,12,12,0"
                 Visibility="Collapsed"/>
+            <Button 
+                x:Name="SetToHighestButton"
+                Click="SetToHighestButton_Click"
+                Content="Set to Highest Bitrate"
+                HorizontalAlignment="Stretch"
+                Margin="12,12,12,0"
+                Visibility="Collapsed"/>
+            <Button
+                x:Name="SetToLowestButton"
+                Click="SetToLowestButton_Click"
+                Content="Set to Lowest Bitrate"
+                HorizontalAlignment="Stretch"
+                Margin="12,12,12,0"
+                Visibility="Collapsed" />
         </StackPanel>
         <TextBox
             x:Name="OutputTextBox"

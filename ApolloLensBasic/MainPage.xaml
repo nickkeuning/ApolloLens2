@@ -59,11 +59,6 @@
                 Click="ShowVideo_Click"
                 Content="Show Video"
                 Style="{StaticResource MarginAndStretch}" />
-            <Button
-                x:Name="HideVideo"
-                Click="HideVideo_Click"
-                Content="Hide Video"
-                Style="{StaticResource MarginAndStretch}" />
         </StackPanel>
         <MediaElement
             Grid.Column="1"

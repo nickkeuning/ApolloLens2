@@ -11,28 +11,27 @@ namespace ApolloLensLibrary.Conducting
 {
     public sealed class Wrapper
     {
+        #region Singleton
+
         public static Wrapper Instance { get { return Wrapper.instance; } }
-        public Media Media { get { return Instance.media; } }
-        public MediaStream MediaStream { get { return Instance.mediaStream; } }
-
         private static readonly Wrapper instance = new Wrapper();
-        private Media media { get; set; }
-        private MediaStream mediaStream { get; set; }
-
-        private bool allowed { get; set; }
-
-        private CoreDispatcher coreDispatcher { get; set; }
-        private static readonly object dispatcherLock = new object();
-
-        private MediaVideoTrack MediaVideoTrack { get; set; }
-        private MediaElement LocalVideo { get; set; }
 
         static Wrapper() { }
         private Wrapper()
         {
             this.media = Media.CreateMedia();
-            this.mediaStream = null;
         }
+
+        #endregion
+
+        private Media media { get; set; }
+        private MediaStream mediaStream { get; set; }
+
+        private static readonly object dispatcherLock = new object();
+        private CoreDispatcher coreDispatcher { get; set; }
+
+        private MediaVideoTrack LocalVideoTrack { get; set; }
+        private MediaVideoTrack RemoteVideoTrack { get; set; }
 
         private RTCMediaStreamConstraints Constraints { get; } = new RTCMediaStreamConstraints()
         {
@@ -50,20 +49,21 @@ namespace ApolloLensLibrary.Conducting
                 }
             }
 
-            this.allowed = await WebRTC.RequestAccessForMediaCapture();
-            if (!this.allowed)
+            var allowed = await WebRTC.RequestAccessForMediaCapture();
+            if (!allowed)
             {
                 throw new Exception("Failed to access media for WebRtc...");
             }
             WebRTC.Initialize(this.coreDispatcher);
         }
 
-        public async Task PrepareUserMediaStream()
+        public async Task LoadLocalMedia()
         {
             this.mediaStream = await this.media.GetUserMedia(this.Constraints);
+            this.LocalVideoTrack = mediaStream.GetVideoTracks().FirstOrDefault();
         }
 
-        public async Task DestroyUserMediaStream()
+        public async Task DestroyAllMedia()
         {
             foreach (var track in this.mediaStream.GetTracks())
             {
@@ -72,30 +72,37 @@ namespace ApolloLensLibrary.Conducting
             }
             this.mediaStream = null;
 
-            await this.DetachLocalVideo();
-
-            GC.Collect();
-        }
-
-        public async Task DetachLocalVideo()
-        {
             await this.coreDispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
             {
-                Instance.Media.RemoveVideoTrackMediaElementPair(this.MediaVideoTrack);
+                this.media.RemoveVideoTrackMediaElementPair(this.LocalVideoTrack);
+                this.media.RemoveVideoTrackMediaElementPair(this.RemoteVideoTrack);
             });
-            this.MediaVideoTrack = null;
+            this.LocalVideoTrack = null;
+            this.RemoteVideoTrack = null;
+            GC.Collect();
         }
 
         public async Task BindLocalVideo(MediaElement mediaElement)
         {
-            this.LocalVideo = mediaElement;
-            this.MediaVideoTrack = this.mediaStream.GetVideoTracks().FirstOrDefault();
             await this.coreDispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
             {
-                this.media.AddVideoTrackMediaElementPair(this.MediaVideoTrack, this.LocalVideo, "Local");
+                this.media.AddVideoTrackMediaElementPair(this.LocalVideoTrack, mediaElement, "Local");
             });
         }
 
+        public async Task BindRemoteVideo(MediaVideoTrack videoTrack, MediaElement mediaElement)
+        {
+            this.RemoteVideoTrack = videoTrack;
+            await this.coreDispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            {
+                this.media.AddVideoTrackMediaElementPair(this.RemoteVideoTrack, mediaElement, "Remote");
+            });
+        }
+
+        public void AddLocalMediaToPeerConnection(RTCPeerConnection peerConnection)
+        {
+            peerConnection.AddStream(this.mediaStream);
+        }
 
         public async Task SetToHighestBitrate()
         {

@@ -40,7 +40,7 @@ namespace ApolloLensBasic
 
         private async void GetMediaStreamButton_Click(object sender, RoutedEventArgs e)
         {
-            await this.Wrapper.PrepareUserMediaStream();
+            await this.Wrapper.LoadLocalMedia();
         }
 
         private async void SetToHighest_Click(object sender, RoutedEventArgs e)
@@ -55,17 +55,12 @@ namespace ApolloLensBasic
 
         private async void DestroyMedia_Click(object sender, RoutedEventArgs e)
         {
-            await this.Wrapper.DestroyUserMediaStream();
+            await this.Wrapper.DestroyAllMedia();
         }
 
         private async void ShowVideo_Click(object sender, RoutedEventArgs e)
         {
             await this.Wrapper.BindLocalVideo(this.LocalVideo);
-        }
-
-        private async void HideVideo_Click(object sender, RoutedEventArgs e)
-        {
-            await this.Wrapper.DetachLocalVideo();
         }
     }
 }

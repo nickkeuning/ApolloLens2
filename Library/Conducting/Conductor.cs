@@ -60,7 +60,7 @@ namespace ApolloLensLibrary.Conducting
 
         private async void Signaller_ReceivedShutdown(object sender, EventArgs e)
         {
-            await this.Wrapper.DestroyUserMediaStream();
+            await this.Wrapper.DestroyAllMedia();
         }
 
         public void DisconnectFromSignallingServer()
@@ -143,23 +143,25 @@ namespace ApolloLensLibrary.Conducting
             this.PeerConnection.OnAddStream += PeerConnection_OnAddStream;
 
             // Attach local media to new connection
-            await this.Wrapper.PrepareUserMediaStream();
-            this.PeerConnection.AddStream(this.Wrapper.MediaStream);
+            await this.Wrapper.LoadLocalMedia();
+            this.Wrapper.AddLocalMediaToPeerConnection(this.PeerConnection);
+            //this.PeerConnection.AddStream(this.Wrapper.MediaStream);
 
             // Start the WebRtc connection handshake
             var localDescription = await this.PeerConnection.CreateOffer();
             await this.PeerConnection.SetLocalDescription(localDescription);
             await this.Signaller.SendOffer(localDescription);
             Logger.Log("Offer sent...");
-            await this.Wrapper.DestroyUserMediaStream();
+            await this.Wrapper.DestroyAllMedia();
         }
 
-        private void PeerConnection_OnAddStream(MediaStreamEvent evt)
+        private async void PeerConnection_OnAddStream(MediaStreamEvent evt)
         {
             var remoteVideoTrack = evt.Stream.GetVideoTracks().FirstOrDefault();
             if (remoteVideoTrack != null)
             {
-                this.Wrapper.Media.AddVideoTrackMediaElementPair(remoteVideoTrack, this.RemoteVideo, "Remote");
+                await this.Wrapper.BindRemoteVideo(remoteVideoTrack, this.RemoteVideo);
+                //this.Wrapper.Media.AddVideoTrackMediaElementPair(remoteVideoTrack, this.RemoteVideo, "Remote");
             }
             Logger.Log("Remote stream added to media element...");
             this.RemoteStreamAdded?.Invoke(this, null);
@@ -189,8 +191,9 @@ namespace ApolloLensLibrary.Conducting
                 }
             );
 
-            await this.Wrapper.PrepareUserMediaStream();
-            this.PeerConnection.AddStream(this.Wrapper.MediaStream);
+            await this.Wrapper.LoadLocalMedia();
+            this.Wrapper.AddLocalMediaToPeerConnection(this.PeerConnection);
+            //this.PeerConnection.AddStream(this.Wrapper.MediaStream);
 
             await this.PeerConnection.SetRemoteDescription(offer);
             var answer = await this.PeerConnection.CreateAnswer();

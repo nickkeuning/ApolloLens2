@@ -13,6 +13,7 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 using ApolloLensLibrary.Conducting;
+using ApolloLensLibrary.Utilities;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -24,43 +25,45 @@ namespace ApolloLensBasic
     public sealed partial class MainPage : Page
     {
         private Wrapper Wrapper { get; }
-        //private Org.WebRtc.MediaVideoTrack MediaVideoTrack { get; set; }
 
         public MainPage()
         {
             this.InitializeComponent();
             this.Wrapper = Wrapper.Instance;
-            //this.Wrapper.DestoyingMediaStream += this.Wrapper_DestoyingMediaStream;
-        }        
+        }
 
-        private async void InitializeButton_Click(object sender, RoutedEventArgs e)
+        protected override async void OnNavigatedTo(NavigationEventArgs args)
         {
             await this.Wrapper.Initialize(this.Dispatcher);
+            var res = this.Wrapper.CaptureProfiles;
+            this.CaptureFormatComboBox.ItemsSource = res;
         }
 
-        private async void GetMediaStreamButton_Click(object sender, RoutedEventArgs e)
+        private void ToggleVisibilities()
         {
-            await this.Wrapper.LoadLocalMedia();
-        }
-
-        private async void SetToHighest_Click(object sender, RoutedEventArgs e)
-        {
-            await this.Wrapper.SetToHighestBitrate();
-        }
-
-        private async void SetToLowest_Click(object sender, RoutedEventArgs e)
-        {
-            await this.Wrapper.SetToLowestBitrate();
-        }
-
-        private async void DestroyMedia_Click(object sender, RoutedEventArgs e)
-        {
-            await this.Wrapper.DestroyAllMedia();
+            this.LocalVideo.ToggleVisibility();
+            this.HideVideo.ToggleVisibility();
+            this.ShowVideo.ToggleVisibility();
+            this.CaptureFormatComboBox.ToggleVisibility();
         }
 
         private async void ShowVideo_Click(object sender, RoutedEventArgs e)
         {
+            await this.Wrapper.LoadLocalMedia();
             await this.Wrapper.BindLocalVideo(this.LocalVideo);
+            this.ToggleVisibilities();
+        }
+
+        private async void HideVideo_Click(object sender, RoutedEventArgs e)
+        {
+            this.ToggleVisibilities();
+            await this.Wrapper.DestroyAllMedia();
+        }
+
+        private void CaptureFormatComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var selectedProfile = (this.CaptureFormatComboBox.SelectedItem as Wrapper.CaptureProfile);
+            this.Wrapper.SetSelectedProfile(selectedProfile);
         }
     }
 }

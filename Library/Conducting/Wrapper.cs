@@ -33,8 +33,8 @@ namespace ApolloLensLibrary.Conducting
         private MediaVideoTrack LocalVideoTrack { get; set; }
         private MediaVideoTrack RemoteVideoTrack { get; set; }
 
-        public IList<CaptureProfile> CaptureCapabilities { get; set; }
-        private CaptureProfile SelectedCapability { get; set; }
+        public IList<CaptureProfile> CaptureProfiles { get; set; }
+        private CaptureProfile SelectedProfile { get; set; }
 
         private RTCMediaStreamConstraints Constraints { get; } = new RTCMediaStreamConstraints()
         {
@@ -59,17 +59,17 @@ namespace ApolloLensLibrary.Conducting
             }
             WebRTC.Initialize(this.coreDispatcher);
 
-            this.CaptureCapabilities = await this.GetCaptureProfiles();
-            this.SelectedCapability = this.CaptureCapabilities.FirstOrDefault();
+            this.CaptureProfiles = await this.GetCaptureProfiles();
+            this.SelectedProfile = this.CaptureProfiles.FirstOrDefault();
         }
 
         public async Task LoadLocalMedia()
         {
             var mrcEnabled = false;
             WebRTC.SetPreferredVideoCaptureFormat(
-                    (int)this.SelectedCapability.Width,
-                    (int)this.SelectedCapability.Height,
-                    (int)this.SelectedCapability.FrameRate,
+                    (int)this.SelectedProfile.Width,
+                    (int)this.SelectedProfile.Height,
+                    (int)this.SelectedProfile.FrameRate,
                     mrcEnabled
                 );
 
@@ -118,9 +118,9 @@ namespace ApolloLensLibrary.Conducting
             GC.Collect();
         }
 
-        public void SetSelectedCapability(CaptureProfile captureCapability)
+        public void SetSelectedProfile(CaptureProfile captureCapability)
         {
-            this.SelectedCapability = captureCapability;
+            this.SelectedProfile = captureCapability;
         }
 
         private async Task<IList<CaptureProfile>> GetCaptureProfiles()

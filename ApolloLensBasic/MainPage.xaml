@@ -30,40 +30,32 @@
             Grid.Column="0"
             HorizontalAlignment="Left">
             <Button
-                x:Name="InitializeButton"
-                Click="InitializeButton_Click"
-                Content="Initialize"
-                Style="{StaticResource MarginAndStretch}" />
-            <Button
-                x:Name="GetMediaStreamButton"
-                Click="GetMediaStreamButton_Click"
-                Content="Get Media Stream"
-                Style="{StaticResource MarginAndStretch}" />
-            <Button
-                x:Name="DestroyMedia"
-                Click="DestroyMedia_Click"
-                Content="Destroy Media"
-                Style="{StaticResource MarginAndStretch}" />
-            <Button
-                x:Name="SetToHighest"
-                Click="SetToHighest_Click"
-                Content="Set to Highest Bitrate"
-                Style="{StaticResource MarginAndStretch}" />
-            <Button
-                x:Name="SetToLowest"
-                Click="SetToLowest_Click"
-                Content="Set to Lowest Bitrate"
-                Style="{StaticResource MarginAndStretch}" />
-            <Button
                 x:Name="ShowVideo"
                 Click="ShowVideo_Click"
                 Content="Show Video"
+                Style="{StaticResource MarginAndStretch}" />
+            <Button
+                x:Name="HideVideo"
+                Click="HideVideo_Click"
+                Content="Hide Video"
+                Style="{StaticResource MarginAndStretch}"
+                Visibility="Collapsed" />
+            <ComboBox
+                x:Name="CaptureFormatComboBox"
+                SelectionChanged="CaptureFormatComboBox_SelectionChanged"
                 Style="{StaticResource MarginAndStretch}" />
         </StackPanel>
         <MediaElement
             Grid.Column="1"
             Style="{StaticResource MarginAndStretch}"
             x:Name="LocalVideo"
-            RealTimePlayback="True" />
+            Visibility="Collapsed"
+            RealTimePlayback="True"
+            RenderTransformOrigin="0.5,0.5">
+            <MediaElement.RenderTransform>
+                <CompositeTransform
+                    ScaleX="-1" />
+            </MediaElement.RenderTransform>
+        </MediaElement>
     </Grid>
 </Page>

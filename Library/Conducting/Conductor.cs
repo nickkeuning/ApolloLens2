@@ -38,16 +38,6 @@ namespace ApolloLensLibrary.Conducting
             await this.Signaller.SendShutdown();
         }
 
-        public async Task SetToHighest()
-        {
-            await this.Wrapper.SetToHighestBitrate();
-        }
-
-        public async Task SetToLowest()
-        {
-            await this.Wrapper.SetToLowestBitrate();
-        }
-
         protected async Task ConnectToSignallingServer(string address)
         {
             this.Signaller = WebSocketSignaller.CreateSignaller();

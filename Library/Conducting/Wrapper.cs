@@ -33,6 +33,9 @@ namespace ApolloLensLibrary.Conducting
         private MediaVideoTrack LocalVideoTrack { get; set; }
         private MediaVideoTrack RemoteVideoTrack { get; set; }
 
+        public IList<CaptureProfile> CaptureCapabilities { get; set; }
+        private CaptureProfile SelectedCapability { get; set; }
+
         private RTCMediaStreamConstraints Constraints { get; } = new RTCMediaStreamConstraints()
         {
             videoEnabled = true,
@@ -55,12 +58,45 @@ namespace ApolloLensLibrary.Conducting
                 throw new Exception("Failed to access media for WebRtc...");
             }
             WebRTC.Initialize(this.coreDispatcher);
+
+            this.CaptureCapabilities = await this.GetCaptureProfiles();
+            this.SelectedCapability = this.CaptureCapabilities.FirstOrDefault();
         }
 
         public async Task LoadLocalMedia()
         {
+            var mrcEnabled = false;
+            WebRTC.SetPreferredVideoCaptureFormat(
+                    (int)this.SelectedCapability.Width,
+                    (int)this.SelectedCapability.Height,
+                    (int)this.SelectedCapability.FrameRate,
+                    mrcEnabled
+                );
+
             this.mediaStream = await this.media.GetUserMedia(this.Constraints);
             this.LocalVideoTrack = mediaStream.GetVideoTracks().FirstOrDefault();
+        }
+
+        public void AddLocalMediaToPeerConnection(RTCPeerConnection peerConnection)
+        {
+            peerConnection.AddStream(this.mediaStream);
+        }
+
+        public async Task BindLocalVideo(MediaElement mediaElement)
+        {
+            await this.coreDispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            {
+                this.media.AddVideoTrackMediaElementPair(this.LocalVideoTrack, mediaElement, "Local");
+            });
+        }
+
+        public async Task BindRemoteVideo(MediaVideoTrack videoTrack, MediaElement mediaElement)
+        {
+            this.RemoteVideoTrack = videoTrack;
+            await this.coreDispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            {
+                this.media.AddVideoTrackMediaElementPair(this.RemoteVideoTrack, mediaElement, "Remote");
+            });
         }
 
         public async Task DestroyAllMedia()
@@ -82,65 +118,39 @@ namespace ApolloLensLibrary.Conducting
             GC.Collect();
         }
 
-        public async Task BindLocalVideo(MediaElement mediaElement)
+        public void SetSelectedCapability(CaptureProfile captureCapability)
         {
-            await this.coreDispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
-            {
-                this.media.AddVideoTrackMediaElementPair(this.LocalVideoTrack, mediaElement, "Local");
-            });
+            this.SelectedCapability = captureCapability;
         }
 
-        public async Task BindRemoteVideo(MediaVideoTrack videoTrack, MediaElement mediaElement)
-        {
-            this.RemoteVideoTrack = videoTrack;
-            await this.coreDispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
-            {
-                this.media.AddVideoTrackMediaElementPair(this.RemoteVideoTrack, mediaElement, "Remote");
-            });
-        }
-
-        public void AddLocalMediaToPeerConnection(RTCPeerConnection peerConnection)
-        {
-            peerConnection.AddStream(this.mediaStream);
-        }
-
-        public async Task SetToHighestBitrate()
+        private async Task<IList<CaptureProfile>> GetCaptureProfiles()
         {
             var videoDevice = this.media.GetVideoCaptureDevices().First();
             var capabilities = await videoDevice.GetVideoCaptureCapabilities();
 
-            var selectedFormat = capabilities
-                .OrderBy(cap => cap.Width * cap.Height * cap.FrameRate)
-                .LastOrDefault();
+            return capabilities
+                .Select(cap => new CaptureProfile(cap))
+                .OrderBy(cap => cap.Width * cap.Height)
+                .ThenBy(cap => cap.FrameRate)
+                .ToList();
+        }
 
-            if (selectedFormat != null)
+        public class CaptureProfile
+        {
+            public uint Width { get; set; }
+            public uint Height { get; set; }
+            public uint FrameRate { get; set; }
+
+            public CaptureProfile(CaptureCapability captureCapability)
             {
-                WebRTC.SetPreferredVideoCaptureFormat(
-                    (int)selectedFormat.Width,
-                    (int)selectedFormat.Height,
-                    (int)selectedFormat.FrameRate,
-                    selectedFormat.MrcEnabled
-                );
+                this.Width = captureCapability.Width;
+                this.Height = captureCapability.Height;
+                this.FrameRate = captureCapability.FrameRate;
             }
-        }
 
-        public async Task SetToLowestBitrate()
-        {
-            var videoDevice = this.media.GetVideoCaptureDevices().First();
-            var capabilities = await videoDevice.GetVideoCaptureCapabilities();
-
-            var selectedFormat = capabilities
-                .OrderBy(cap => cap.Width * cap.Height * cap.FrameRate)
-                .FirstOrDefault();
-
-            if (selectedFormat != null)
+            public override string ToString()
             {
-                WebRTC.SetPreferredVideoCaptureFormat(
-                    (int)selectedFormat.Width,
-                    (int)selectedFormat.Height,
-                    (int)selectedFormat.FrameRate,
-                    selectedFormat.MrcEnabled
-                );
+                return $"{Width} x {Height} {FrameRate} fps";
             }
         }
     }

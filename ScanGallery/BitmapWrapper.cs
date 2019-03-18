@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Windows.UI.Xaml.Media.Imaging;
-using System.IO;
 using System.Runtime.InteropServices.WindowsRuntime;
+using Windows.UI.Xaml.Media.Imaging;
 
 
 namespace ScanGallery

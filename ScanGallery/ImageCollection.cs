@@ -1,14 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Windows.UI.Xaml.Media.Imaging;
+using System.ComponentModel;
 
 namespace ScanGallery
 {
     public class ImageCollection : IImageCollection
     {
-        public WriteableBitmap Current => this.Images.ElementAtOrDefault(this.CurrentIndex)?.GetImage(this.Contrast, this.Brightness);
-        int IImageCollection.Size => this.Images.Count;
-
         public ImageCollection()
         {
             this.Images = new List<BitmapWrapper>();
@@ -17,41 +15,65 @@ namespace ScanGallery
             this.CurrentIndex = 0;
         }
 
+        public WriteableBitmap CurrentImage
+        {
+            get
+            {
+                return this.Images.ElementAtOrDefault(this.CurrentIndex)?.GetImage(this.Contrast, this.Brightness);
+            }
+        }
+
+        int IImageCollection.Size
+        {
+            get
+            {
+                return this.Images.Count;
+            }
+        }
+
         private Brightness Brightness { get; }
         private Contrast Contrast { get; }
         private int CurrentIndex { get; set; }
 
         private List<BitmapWrapper> Images { get; }
 
+        public event PropertyChangedEventHandler PropertyChanged;
+
         public void AddImages(IEnumerable<WriteableBitmap> images)
         {
             this.Images.AddRange(images.Select(bm => new BitmapWrapper(bm)));
+            this.OnProperyChanged(nameof(this.CurrentImage));
         }
 
         public void DecreaseBrightness()
         {
             this.Brightness.Decrease();
+            this.OnProperyChanged(nameof(this.CurrentImage));
         }
 
         public void DecreaseContrast()
         {
             this.Contrast.Decrease();
+            this.OnProperyChanged(nameof(this.CurrentImage));
         }
 
         public void IncreaseBrightness()
         {
             this.Brightness.Increase();
+            this.OnProperyChanged(nameof(this.CurrentImage));
         }
 
         public void IncreaseContrast()
         {
             this.Contrast.Increase();
+            this.OnProperyChanged(nameof(this.CurrentImage));
         }
 
         public void Reset()
         {
             this.Brightness.Reset();
             this.Contrast.Reset();
+            this.OnProperyChanged(nameof(this.CurrentImage));
         }
 
         public void GoTo(int index)
@@ -60,6 +82,7 @@ namespace ScanGallery
             {
                 this.CurrentIndex = index;
             }
+            this.OnProperyChanged(nameof(this.CurrentImage));
         }
 
         public void MoveNext()
@@ -68,6 +91,7 @@ namespace ScanGallery
             {
                 this.CurrentIndex++;
             }
+            this.OnProperyChanged(nameof(this.CurrentImage));
         }
 
         public void MovePrevious()
@@ -76,12 +100,18 @@ namespace ScanGallery
             {
                 this.CurrentIndex--;
             }
+            this.OnProperyChanged(nameof(this.CurrentImage));
+        }
+
+        private void OnProperyChanged(string propertyName)
+        {
+            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 
-    public interface IImageCollection
+    public interface IImageCollection : INotifyPropertyChanged
     {
-        WriteableBitmap Current { get; }
+        WriteableBitmap CurrentImage { get; }
 
         void AddImages(IEnumerable<WriteableBitmap> images);
 

@@ -30,12 +30,16 @@ namespace ScanGallery
             this.InitializeComponent();
             this.dicom = new DicomManager();
             this.ImageCollection = new ImageCollection();
+            this.ImageCollection.PropertyChanged += (s, e) =>
+            {
+                this.OnPropertyChanged(nameof(this.Image));
+            };
         }
 
         private DicomManager dicom { get; set; }
         private IImageCollection ImageCollection { get; set; }
 
-        public WriteableBitmap Image => this.ImageCollection.Current;
+        public WriteableBitmap Image => this.ImageCollection.CurrentImage;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -43,56 +47,41 @@ namespace ScanGallery
         {
             var images = await this.dicom.GetImages();
             this.ImageCollection.AddImages(images);
-            this.OnPropertyChanged(nameof(this.Image));
         }
 
         private void BrightnessUp_Click(object sender, RoutedEventArgs e)
         {
             this.ImageCollection.IncreaseBrightness();
-            this.OnPropertyChanged(nameof(this.Image));
-
         }
 
         private void ContrastUp_Click(object sender, RoutedEventArgs e)
         {
             this.ImageCollection.IncreaseContrast();
-            this.OnPropertyChanged(nameof(this.Image));
-
         }
 
         private void ContrastDown_Click(object sender, RoutedEventArgs e)
         {
             this.ImageCollection.DecreaseContrast();
-            this.OnPropertyChanged(nameof(this.Image));
-
         }
 
         private void Reset_Click(object sender, RoutedEventArgs e)
         {
             this.ImageCollection.Reset();
-            this.OnPropertyChanged(nameof(this.Image));
-
         }
 
         private void BrightnessDown_Click(object sender, RoutedEventArgs e)
         {
             this.ImageCollection.DecreaseBrightness();
-            this.OnPropertyChanged(nameof(this.Image));
-
         }
 
         private void Previous_Click(object sender, RoutedEventArgs e)
         {
             this.ImageCollection.MovePrevious();
-            this.OnPropertyChanged(nameof(this.Image));
-
         }
 
         private void Next_Click(object sender, RoutedEventArgs e)
         {
             this.ImageCollection.MoveNext();
-            this.OnPropertyChanged(nameof(this.Image));
-
         }
 
         private void OnPropertyChanged(string propertyName)

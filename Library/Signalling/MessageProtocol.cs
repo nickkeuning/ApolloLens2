@@ -8,6 +8,7 @@ namespace ApolloLensLibrary.Signalling
     {
         private static string MessageTypeKeyName { get; } = "MessageType";
         private static string MessageContentsKeyName { get; } = "MessageContents";
+        public static readonly string AwsAddress = "http://apollosignaller-env.p47zti3ztv.us-east-2.elasticbeanstalk.com/";
 
         public static string WrapMessage(string messageContents, MessageType messageType)
         {

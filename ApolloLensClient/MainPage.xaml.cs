@@ -31,7 +31,7 @@ namespace ApolloLensClient
         public string CustomAddress { get; set; }
 
         private string CustomServerSettingsKey { get; } = "CustomServerAddress";
-        private string ServerAddress => this.ConnectAzure ? "wss://apollosignalling.azurewebsites.net/" : $"ws://{this.CustomAddress}/";
+        private string ServerAddress => this.ConnectAzure ? ServerConfig.AwsAddress : $"ws://{this.CustomAddress}/";
 
 
         private Caller Caller { get; }
@@ -47,7 +47,7 @@ namespace ApolloLensClient
                 Logger.WriteMessage += this.WriteLine;
             }
 
-            this.Caller = new Caller(this.Dispatcher, this.RemoteVideo);
+            this.Caller = new Caller(this.RemoteVideo);
             this.Caller.RemoteStreamAdded += this.Caller_RemoteStreamAdded;
 
             if (!ApplicationData.Current.LocalSettings.Values.TryGetValue(this.CustomServerSettingsKey, out object value))
@@ -119,7 +119,7 @@ namespace ApolloLensClient
         {
             this.SourceConnectButton.Visibility = Visibility.Collapsed;
             Logger.Log("Initializing WebRtc...");
-            await this.Caller.Initialize();
+            await this.Caller.Initialize(this.Dispatcher);
             Logger.Log("Connecting to WebRtc remote source...");
             await this.Caller.StartPeerConnection();
 

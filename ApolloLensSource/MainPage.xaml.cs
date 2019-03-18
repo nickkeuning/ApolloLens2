@@ -28,8 +28,7 @@ namespace ApolloLensSource
         public bool Logging { get; set; } = true;
         public bool ConnectAzure { get; set; } = true;
 
-
-        private string ServerAddress => this.ConnectAzure ? "wss://apollosignalling.azurewebsites.net/" : "ws://localhost/";
+        private string ServerAddress => this.ConnectAzure ? ServerConfig.AwsAddress : ServerConfig.LocalAddress;
         private Callee Callee { get; set; }
 
         public MainPage()
@@ -40,7 +39,14 @@ namespace ApolloLensSource
             {
                 Logger.WriteMessage += this.WriteLine;
             }
-            this.Callee = new Callee(this.Dispatcher);
+            this.Callee = new Callee();
+        }
+
+        protected override async void OnNavigatedTo(NavigationEventArgs args)
+        {
+            await this.Callee.Initialize(this.Dispatcher);
+            var res = this.Callee.CaptureProfiles;
+            this.CaptureFormatComboBox.ItemsSource = res;
         }
 
         #region Utilities
@@ -53,44 +59,30 @@ namespace ApolloLensSource
             });
         }
 
-        private void ToggleDisconnectedStateButtons()
+        private void ToggleValidWhenDisconnectedControls()
         {
             this.ConnectToServerButton.ToggleVisibility();
             this.RemoteServerToggle.ToggleVisibility();
+            this.CaptureFormatComboBox.ToggleVisibility();
         }
 
-        private void ToggleConnectedStateButtons()
+        private void ToggleValidWhenConnectedControls()
         {
             this.DisconnectFromServerButton.ToggleVisibility();
             this.SayHiButton.ToggleVisibility();
-            this.SetToHighestButton.ToggleVisibility();
-            this.SetToLowestButton.ToggleVisibility();
         }
 
         #endregion
 
         #region UI_Handlers
 
-        private void LoggerToggle_Click(object sender, RoutedEventArgs e)
-        {
-            if (this.Logging)
-            {
-                Logger.WriteMessage += this.WriteLine;
-            }
-            else
-            {
-                Logger.WriteMessage -= this.WriteLine;
-            }
-        }
-
         private async void ConnectToServer_Click(object sender, RoutedEventArgs e)
         {
-            this.ToggleDisconnectedStateButtons();
+            this.ToggleValidWhenDisconnectedControls();
 
             await this.Callee.ConnectToSignallingServer(this.ServerAddress);
-            await this.Callee.Initialize();
 
-            this.ToggleConnectedStateButtons();
+            this.ToggleValidWhenConnectedControls();
         }
 
         private async void SayHiButton_Click(object sender, RoutedEventArgs e)
@@ -100,23 +92,17 @@ namespace ApolloLensSource
 
         private void DisconnectFromServerButton_Click(object sender, RoutedEventArgs e)
         {
-            this.ToggleConnectedStateButtons();
+            this.ToggleValidWhenConnectedControls();
 
             this.Callee.DisconnectFromSignallingServer();
 
-            this.ToggleDisconnectedStateButtons();
-        }        
+            this.ToggleValidWhenDisconnectedControls();
+        }
 
-        private async void SetToHighestButton_Click(object sender, RoutedEventArgs e)
+        private void CaptureFormatComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            await this.Callee.SetToHighest();
-            Logger.Log("Set bitrate to highest available...");
-        }        
-
-        private async void SetToLowestButton_Click(object sender, RoutedEventArgs e)
-        {
-            await this.Callee.SetToLowest();
-            Logger.Log("Set bitrate to lowest available...");
+            var selectedProfile = (this.CaptureFormatComboBox.SelectedItem as Wrapper.CaptureProfile);
+            this.Callee.SetSelectedProfile(selectedProfile);
         }
 
         #endregion

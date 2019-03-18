@@ -24,6 +24,9 @@ namespace ApolloLensLibrary.Conducting
 
         #endregion
 
+        public IList<CaptureProfile> CaptureProfiles { get; private set; }
+        private CaptureProfile SelectedProfile { get; set; }
+
         private Media media { get; set; }
         private MediaStream mediaStream { get; set; }
 
@@ -31,10 +34,7 @@ namespace ApolloLensLibrary.Conducting
         private CoreDispatcher coreDispatcher { get; set; }
 
         private MediaVideoTrack LocalVideoTrack { get; set; }
-        private MediaVideoTrack RemoteVideoTrack { get; set; }
-
-        public IList<CaptureProfile> CaptureProfiles { get; set; }
-        private CaptureProfile SelectedProfile { get; set; }
+        private MediaVideoTrack RemoteVideoTrack { get; set; }        
 
         private RTCMediaStreamConstraints Constraints { get; } = new RTCMediaStreamConstraints()
         {
@@ -99,7 +99,7 @@ namespace ApolloLensLibrary.Conducting
             });
         }
 
-        public async Task DestroyAllMedia()
+        public async Task DestroyLocalMedia(bool collect = true)
         {
             foreach (var track in this.mediaStream.GetTracks())
             {
@@ -111,10 +111,33 @@ namespace ApolloLensLibrary.Conducting
             await this.coreDispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
             {
                 this.media.RemoveVideoTrackMediaElementPair(this.LocalVideoTrack);
+            });
+            this.LocalVideoTrack = null;
+
+            if (collect)
+            {
+                GC.Collect();
+            }
+        }
+
+        public async Task DestroyRemoteMedia(bool collect = true)
+        {
+            await this.coreDispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            {
                 this.media.RemoveVideoTrackMediaElementPair(this.RemoteVideoTrack);
             });
             this.LocalVideoTrack = null;
-            this.RemoteVideoTrack = null;
+
+            if (collect)
+            {
+                GC.Collect();
+            }
+        }
+
+        public async Task DestroyAllMedia()
+        {
+            await this.DestroyLocalMedia(false);
+            await this.DestroyRemoteMedia(false);
             GC.Collect();
         }
 
@@ -137,9 +160,9 @@ namespace ApolloLensLibrary.Conducting
 
         public class CaptureProfile
         {
-            public uint Width { get; set; }
-            public uint Height { get; set; }
-            public uint FrameRate { get; set; }
+            public uint Width { get; }
+            public uint Height { get; }
+            public uint FrameRate { get; }
 
             public CaptureProfile(CaptureCapability captureCapability)
             {

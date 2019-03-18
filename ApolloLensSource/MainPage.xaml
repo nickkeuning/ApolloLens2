@@ -7,6 +7,18 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    <Page.Resources>
+        <Style
+            x:Key="MarginAndStretch"
+            TargetType="FrameworkElement">
+            <Setter
+                Property="Margin"
+                Value="12,12,12,0" />
+            <Setter
+                Property="HorizontalAlignment"
+                Value="Stretch" />
+        </Style>
+    </Page.Resources>
     <Grid>
         <StackPanel
             Margin="12"
@@ -14,43 +26,29 @@
             HorizontalAlignment="Left">
             <ToggleSwitch
                 x:Name="RemoteServerToggle"
-                Margin="12,12,12,0"
-                IsOn="{Binding ConnectAzure, Mode=TwoWay}"
-                HorizontalAlignment="Stretch">Connect to Azure</ToggleSwitch>
+                Style="{StaticResource MarginAndStretch}"
+                IsOn="{Binding ConnectAzure, Mode=TwoWay}">Connect to Azure</ToggleSwitch>
             <Button
                 x:Name="ConnectToServerButton"
                 Click="ConnectToServer_Click"
                 Content="Connect to Server"
-                HorizontalAlignment="Stretch"
-                Margin="12,12,12,0" />
+                Style="{StaticResource MarginAndStretch}" />
             <Button
                 x:Name="DisconnectFromServerButton"
                 Click="DisconnectFromServerButton_Click"
                 Content="Disconnect from Server"
-                HorizontalAlignment="Stretch"
-                Margin="12,12,12,0" 
+                Style="{StaticResource MarginAndStretch}"
                 Visibility="Collapsed"/>
             <Button
                 x:Name="SayHiButton"
                 Click="SayHiButton_Click"
                 Content="Say Hi"
-                HorizontalAlignment="Stretch"
-                Margin="12,12,12,0"
-                Visibility="Collapsed"/>
-            <Button 
-                x:Name="SetToHighestButton"
-                Click="SetToHighestButton_Click"
-                Content="Set to Highest Bitrate"
-                HorizontalAlignment="Stretch"
-                Margin="12,12,12,0"
-                Visibility="Collapsed"/>
-            <Button
-                x:Name="SetToLowestButton"
-                Click="SetToLowestButton_Click"
-                Content="Set to Lowest Bitrate"
-                HorizontalAlignment="Stretch"
-                Margin="12,12,12,0"
+                Style="{StaticResource MarginAndStretch}"
                 Visibility="Collapsed" />
+            <ComboBox
+                x:Name="CaptureFormatComboBox"
+                SelectionChanged="CaptureFormatComboBox_SelectionChanged"
+                Style="{StaticResource MarginAndStretch}" />
         </StackPanel>
         <TextBox
             x:Name="OutputTextBox"

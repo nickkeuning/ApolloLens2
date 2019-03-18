@@ -137,4 +137,31 @@ namespace ApolloLensLibrary.Signalling
             this.WebSocket.Dispose();
         }
     }
+
+
+    public interface ICallerSignaller : IBaseSignaller
+    {
+        Task SendOffer(RTCSessionDescription offer);
+        event EventHandler<RTCSessionDescription> ReceivedAnswer;
+    }
+
+    public interface ICalleeSignaller : IBaseSignaller
+    {
+        Task SendAnswer(RTCSessionDescription answer);
+        event EventHandler<RTCSessionDescription> ReceivedOffer;
+    }
+
+    public interface IBaseSignaller
+    {
+        Task ConnectToServer(string address);
+        void DisconnectFromServer();
+
+        Task SendIceCandidate(RTCIceCandidate iceCandidate);
+        Task SendPlainMessage(string message);
+        Task SendShutdown();
+
+        event EventHandler<RTCIceCandidate> ReceivedIceCandidate;
+        event EventHandler<string> ReceivedPlainMessage;
+        event EventHandler ReceivedShutdown;
+    }
 }

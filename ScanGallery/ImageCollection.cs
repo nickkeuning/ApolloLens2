@@ -5,110 +5,6 @@ using System.ComponentModel;
 
 namespace ScanGallery
 {
-    //public class OldImageCollection : IDicomStudy
-    //{
-    //    public OldImageCollection()
-    //    {
-    //        this.Images = new List<SmartBitmap>();
-    //        this.Brightness = new Brightness();
-    //        this.Contrast = new Contrast();
-    //        this.CurrentIndex = 0;
-    //    }
-
-    //    public WriteableBitmap GetCurrentImage
-    //    {
-    //        get
-    //        {
-    //            return this.Images.ElementAtOrDefault(this.CurrentIndex)?.GetImage(this.Contrast, this.Brightness);
-    //        }
-    //    }
-
-    //    public int GetSize
-    //    {
-    //        get
-    //        {
-    //            return this.Images.Count;
-    //        }
-    //    }
-
-    //    private Brightness Brightness { get; }
-    //    private Contrast Contrast { get; }
-    //    private int CurrentIndex { get; set; }
-
-    //    private List<SmartBitmap> Images { get; }
-
-    //    public event PropertyChangedEventHandler PropertyChanged;
-
-    //    public void AddImagesToSeries(IEnumerable<WriteableBitmap> images)
-    //    {
-    //        this.Images.AddRange(images.Select(bm => new SmartBitmap(bm)));
-    //        this.OnProperyChanged(nameof(this.GetCurrentImage));
-    //    }
-
-    //    public void DecreaseBrightness()
-    //    {
-    //        this.Brightness.Decrease();
-    //        this.OnProperyChanged(nameof(this.GetCurrentImage));
-    //    }
-
-    //    public void DecreaseContrast()
-    //    {
-    //        this.Contrast.Decrease();
-    //        this.OnProperyChanged(nameof(this.GetCurrentImage));
-    //    }
-
-    //    public void IncreaseBrightness()
-    //    {
-    //        this.Brightness.Increase();
-    //        this.OnProperyChanged(nameof(this.GetCurrentImage));
-    //    }
-
-    //    public void IncreaseContrast()
-    //    {
-    //        this.Contrast.Increase();
-    //        this.OnProperyChanged(nameof(this.GetCurrentImage));
-    //    }
-
-    //    public void Reset()
-    //    {
-    //        this.Brightness.Reset();
-    //        this.Contrast.Reset();
-    //        this.OnProperyChanged(nameof(this.GetCurrentImage));
-    //    }
-
-    //    public void GoTo(int index)
-    //    {
-    //        if (index > 0 && index < this.Images.Count)
-    //        {
-    //            this.CurrentIndex = index;
-    //        }
-    //        this.OnProperyChanged(nameof(this.GetCurrentImage));
-    //    }
-
-    //    public void MoveNext()
-    //    {
-    //        if (this.CurrentIndex + 1 < this.Images.Count)
-    //        {
-    //            this.CurrentIndex++;
-    //        }
-    //        this.OnProperyChanged(nameof(this.GetCurrentImage));
-    //    }
-
-    //    public void MovePrevious()
-    //    {
-    //        if (this.CurrentIndex > 0)
-    //        {
-    //            this.CurrentIndex--;
-    //        }
-    //        this.OnProperyChanged(nameof(this.GetCurrentImage));
-    //    }
-
-    //    private void OnProperyChanged(string propertyName)
-    //    {
-    //        this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    //    }
-    ////}
-
     public class ImageCollection : IDicomStudy
     {
         private Brightness Brightness { get; }
@@ -130,7 +26,19 @@ namespace ScanGallery
             this.CurrentSeries = "";
         }
 
+        private void OnPropertyChanged(string PropertyName)
+        {
+            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(PropertyName));
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;
+
+        public WriteableBitmap GetCurrentImage()
+        {
+            this.Images.TryGetValue(this.CurrentSeries, out var series);
+            var smartBitmap = series?.ElementAtOrDefault(this.CurrentIndex);
+            return smartBitmap?.GetImage(this.Contrast, this.Brightness);
+        }
 
         public void AddImagesToSeries(IEnumerable<WriteableBitmap> images, string SeriesName)
         {
@@ -145,11 +53,6 @@ namespace ScanGallery
 
             this.Images[SeriesName].AddRange(images.Select(bm => new SmartBitmap(bm)));
             this.OnPropertyChanged(nameof(this.GetSeriesNames));
-        }
-
-        private void OnPropertyChanged(string PropertyName)
-        {
-            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(PropertyName));
         }
 
         public void DecreaseBrightness()
@@ -181,13 +84,6 @@ namespace ScanGallery
             this.Brightness.Reset();
             this.Contrast.Reset();
             this.OnPropertyChanged(nameof(this.GetCurrentImage));
-        }
-
-        public WriteableBitmap GetCurrentImage()
-        {
-            this.Images.TryGetValue(this.CurrentSeries, out var series);
-            var smartBitmap = series?.ElementAtOrDefault(this.CurrentIndex);
-            return smartBitmap?.GetImage(this.Contrast, this.Brightness);
         }
 
         public string GetCurrentSeries()

@@ -24,29 +24,48 @@ namespace ScanGallery
     /// </summary>
     public sealed partial class MainPage : Page, INotifyPropertyChanged
     {
+        private DicomManager dicom { get; set; }
+        private IDicomStudy ImageCollection { get; set; }
+
+        // Bound to MainPage.xaml
+        public WriteableBitmap Image => this.ImageCollection.GetCurrentImage();
+        public IList<string> Series => this.ImageCollection.GetSeriesNames();
+
         public MainPage()
         {
             this.DataContext = this;
             this.InitializeComponent();
             this.dicom = new DicomManager();
             this.ImageCollection = new ImageCollection();
+
+            // Pass property changes in ImageCollection up to MainPage.xaml
             this.ImageCollection.PropertyChanged += (s, e) =>
             {
-                this.OnPropertyChanged(nameof(this.Image));
+                // Translate ImageCollection method name to local property name
+                var bindings = new Dictionary<string, string>()
+                {
+                    { "GetCurrentImage", "Image" },
+                    { "GetSeriesNames", "Series" }
+                };
+                var name = bindings[e.PropertyName];
+                this.OnPropertyChanged(name);
             };
         }
 
-        private DicomManager dicom { get; set; }
-        private IImageCollection ImageCollection { get; set; }
-
-        public WriteableBitmap Image => this.ImageCollection.CurrentImage;
+        private void OnPropertyChanged(string propertyName)
+        {
+            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
 
         public event PropertyChangedEventHandler PropertyChanged;
 
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             var images = await this.dicom.GetImages();
-            this.ImageCollection.AddImages(images);
+            var mid = images.Count() / 2;
+            this.ImageCollection.AddImagesToSeries(images.Take(mid), "First");
+            this.ImageCollection.AddImagesToSeries(images.Skip(mid), "Second");
+            this.SeriesSelect.SelectedIndex = 0;
         }
 
         private void BrightnessUp_Click(object sender, RoutedEventArgs e)
@@ -84,9 +103,10 @@ namespace ScanGallery
             this.ImageCollection.MoveNext();
         }
 
-        private void OnPropertyChanged(string propertyName)
+        private void SeriesSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            var seriesName = (string)this.SeriesSelect.SelectedItem;
+            this.ImageCollection.SetCurrentSeries(seriesName);
         }
     }
 }

@@ -119,7 +119,7 @@
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
-    <Compile Include="BitmapWrapper.cs" />
+    <Compile Include="SmartBitmap.cs" />
     <Compile Include="DicomManager.cs" />
     <Compile Include="ImageCharacteristics.cs" />
     <Compile Include="ImageCollection.cs" />

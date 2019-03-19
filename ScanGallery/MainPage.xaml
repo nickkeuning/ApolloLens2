@@ -92,5 +92,14 @@
             Margin="12"
             Content="Next Image"
             Click="Next_Click" />
+        <ComboBox 
+            x:Name="SeriesSelect"
+            Grid.Column="1"
+            Grid.ColumnSpan="2"
+            Grid.Row="4" 
+            HorizontalAlignment="Stretch"
+            Margin="12"
+            ItemsSource="{Binding Series, Mode=OneWay}"
+            SelectionChanged="SeriesSelect_SelectionChanged"/>
     </Grid>
 </Page>

@@ -11,7 +11,7 @@ namespace ScanGallery
     /// Saves an original, so changes are non destructive.
     /// Caches a modified image to avoid recalculating requests for the same b and c.
     /// </summary>
-    public class BitmapWrapper
+    public class SmartBitmap
     {
         private WriteableBitmap Original { get; }
         private WriteableBitmap Current { get; set; }
@@ -19,7 +19,7 @@ namespace ScanGallery
         private Brightness Brightness { get; }
         private Contrast Contrast { get; }
 
-        public BitmapWrapper(WriteableBitmap bitmap)
+        public SmartBitmap(WriteableBitmap bitmap)
         {
             this.Original = this.Current = bitmap;
 
@@ -29,15 +29,18 @@ namespace ScanGallery
 
         public WriteableBitmap GetImage(Contrast contrast, Brightness brightness)
         {
-            if (brightness.IsOriginal && contrast.IsOriginal)
+            if (brightness.IsDefault && contrast.IsDefault)
             {
                 return this.Original;
             }
             if (!this.Brightness.Equals(brightness) || !this.Contrast.Equals(contrast))
             {
-                this.Contrast.SetCount(contrast.Count);
-                this.Brightness.SetCount(brightness.Count);
-                this.Current = CalculateImage(this.Original, this.Brightness.Value, this.Contrast.Value);
+                this.Contrast.SetTo(contrast);
+                this.Brightness.SetTo(brightness);
+                this.Current = CalculateImage(
+                    this.Original,
+                    this.Brightness.Value,
+                    this.Contrast.Value);
             }
             return this.Current;
         }
@@ -50,51 +53,77 @@ namespace ScanGallery
         /// <param name="brightness"></param>
         /// <param name="contrast"></param>
         /// <returns></returns>
-        private static WriteableBitmap CalculateImage(WriteableBitmap image, 
-            double brightness, double contrast, bool BlackAndWhite = true)
+        private static WriteableBitmap CalculateImage(
+            WriteableBitmap image,
+            double brightness,
+            double contrast,
+            bool BlackAndWhite = true)
         {
             var destImage = new WriteableBitmap(image.PixelWidth, image.PixelHeight);
-            var color = new byte[4];
+            var pixel = new byte[4];
             using (Stream source = image.PixelBuffer.AsStream())
             {
                 using (Stream dest = destImage.PixelBuffer.AsStream())
                 {
-                    while (source.Read(color, 0, 4) > 0)
+                    while (source.Read(pixel, 0, 4) > 0)
                     {
-                        var alpha = color.Last() / (double)255;
-
-                        // Save some time since all color channels are the same in black and white images
-                        if (BlackAndWhite)
-                        {
-                            var value = AdjustColorChannel(color.First(), alpha, brightness, contrast);
-                            color[0] = color[1] = color[2] = value;
-                        }
-                        // Else calculate each channel independently
-                        else
-                        {
-                            for (int i = 0; i < 3; i++)
-                            {
-                                color[i] = AdjustColorChannel(color[i], alpha, brightness, contrast);
-                            }
-                        }
-                        dest.Write(color, 0, 4);
+                        pixel = CalculatePixel(pixel, brightness, contrast, BlackAndWhite);
+                        dest.Write(pixel, 0, 4);
                     }
                 }
             }
             return destImage;
         }
 
+
         /// <summary>
-        /// Calculates the adjusted color value based on the given color,
-        /// alpha, brightness and contrast values
+        /// Calculate a pixel modified according to brightness and contrast
+        /// </summary>
+        /// <param name="pixel"></param>
+        /// <param name="brightness"></param>
+        /// <param name="contrast"></param>
+        /// <param name="BlackAndWhite"></param>
+        private static byte[] CalculatePixel(byte[] pixel, double brightness, double contrast, bool BlackAndWhite)
+        {
+            var alpha = pixel.Last() / (double)255;
+            // Save some time since all color channels are the same in black and white images
+            if (BlackAndWhite)
+            {
+                var value = CalculateColor(
+                    pixel.First(),
+                    alpha,
+                    brightness,
+                    contrast);
+                pixel[0] = pixel[1] = pixel[2] = value;
+            }
+            // Else calculate each channel independently
+            else
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    pixel[i] = CalculateColor(
+                        pixel[i],
+                        alpha,
+                        brightness,
+                        contrast);
+                }
+            }
+            return pixel;
+        }
+
+        /// <summary>
+        /// Calculate a single color channel, modified by brightness and contrast
         /// </summary>
         /// <param name="color"></param>
         /// <param name="alpha"></param>
         /// <param name="brightness"></param>
         /// <param name="contrast"></param>
         /// <returns></returns>
-        private static byte AdjustColorChannel(byte color, double alpha, 
-            double brightness, double contrast)
+        private static byte CalculateColor(
+            byte color,
+            double alpha,
+            double brightness,
+            double contrast)
         {
             var value = (double)color;
 

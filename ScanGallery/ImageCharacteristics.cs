@@ -4,12 +4,13 @@ namespace ScanGallery
 {
     public abstract class ImageCharactericsBase : IEquatable<ImageCharactericsBase>
     {
+        protected int Count { get; set; } = 0;
+
         public void Increase() => this.Count++;
         public void Decrease() => this.Count--;
-        public bool IsOriginal => this.Count == 0;
+        public bool IsDefault => this.Count == 0;
         public void Reset() => this.Count = 0;
-        public void SetCount(int input) => this.Count = input;
-        public int Count { get; private set; }
+        public void SetTo(ImageCharactericsBase other) => this.Count = other.Count;
 
         public bool Equals(ImageCharactericsBase other)
         {
@@ -23,30 +24,21 @@ namespace ScanGallery
         }
 
         public abstract double Value { get; }
-
-        protected double Base { get; set; }
-        protected double Delta { get; set; }
     }
 
     public class Brightness : ImageCharactericsBase
     {
-        public Brightness()
-        {
-            this.Base = 0.0;
-            this.Delta = 4.0;
-        }
+        private static double Base { get; } = 0.0;
+        private static double Delta { get; } = 4.0;
 
-        public override double Value { get { return this.Base + this.Delta * this.Count; } }
+        public override double Value { get { return Base + Delta * this.Count; } }
     }
 
     public class Contrast : ImageCharactericsBase
     {
-        public Contrast()
-        {
-            this.Base = 1.0;
-            this.Delta = 1.05;
-        }
+        private static double Base { get; } = 1.0;
+        private static double Delta { get; } = 1.05;
 
-        public override double Value { get { return this.Base * Math.Pow(this.Delta, this.Count); } }
+        public override double Value { get { return Base * Math.Pow(Delta, this.Count); } }
     }
 }

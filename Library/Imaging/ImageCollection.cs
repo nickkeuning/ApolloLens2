@@ -14,12 +14,12 @@ namespace ApolloLensLibrary.Imaging
         private int CurrentIndex { get; set; }
         private string CurrentSeries { get; set; }
 
-        private Dictionary<string, List<SmartBitmap>> Images { get; }
+        private Dictionary<string, SmartBitmap[]> Images { get; }
         private Dictionary<string, int> SeriesIndexCache { get; }
 
         public ImageCollection()
         {
-            this.Images = new Dictionary<string, List<SmartBitmap>>();
+            this.Images = new Dictionary<string, SmartBitmap[]>();
             this.SeriesIndexCache = new Dictionary<string, int>();
             this.Brightness = new Brightness();
             this.Contrast = new Contrast();
@@ -41,20 +41,20 @@ namespace ApolloLensLibrary.Imaging
             return smartBitmap?.GetImage(this.Contrast, this.Brightness);
         }
 
-        public void AddImagesToSeries(IEnumerable<WriteableBitmap> images, string seriesName)
-        {
-            if (!images.Any())
-                return;
+        //public void AddImagesToSeries(IEnumerable<WriteableBitmap> images, string seriesName)
+        //{
+        //    if (!images.Any())
+        //        return;
 
-            if (!this.Images.ContainsKey(seriesName))
-            {
-                this.Images.Add(seriesName, new List<SmartBitmap>());
-                this.SeriesIndexCache.Add(seriesName, 0);
-            }
+        //    if (!this.Images.ContainsKey(seriesName))
+        //    {
+        //        this.Images.Add(seriesName, new List<SmartBitmap>());
+        //        this.SeriesIndexCache.Add(seriesName, 0);
+        //    }
 
-            this.Images[seriesName].AddRange(images.Select(bm => new SmartBitmap(bm)));
-            this.OnPropertyChanged(nameof(this.GetSeriesNames));
-        }
+        //    this.Images[seriesName].AddRange(images.Select(bm => new SmartBitmap(bm)));
+        //    this.OnPropertyChanged(nameof(this.GetSeriesNames));
+        //}
 
         public void DecreaseBrightness()
         {
@@ -103,7 +103,7 @@ namespace ApolloLensLibrary.Imaging
             {
                 throw new System.ArgumentException("Series not contained in collection.");
             }
-            return this.Images[SeriesName].Count;
+            return this.Images[SeriesName].Count();
         }
 
         public bool MoveNext()
@@ -146,7 +146,7 @@ namespace ApolloLensLibrary.Imaging
         {
             if (!this.Images.ContainsKey(seriesName))
             {
-                this.Images.Add(seriesName, new List<SmartBitmap>(seriesSize));
+                this.Images.Add(seriesName, new SmartBitmap[seriesSize]);
                 this.SeriesIndexCache.Add(seriesName, 0);
             }
         }
@@ -155,7 +155,7 @@ namespace ApolloLensLibrary.Imaging
         {
             if (!this.Images.ContainsKey(seriesName))
                 throw new ArgumentException();
-            if (position < 0 || position >= this.Images[seriesName].Count)
+            if (position < 0 || position >= this.Images[seriesName].Count())
                 throw new ArgumentException();
 
             this.Images[seriesName][position] = new SmartBitmap(image);
@@ -170,7 +170,7 @@ namespace ApolloLensLibrary.Imaging
         IList<string> GetSeriesNames();
         void CreateSeries(string SeriesName, int SeriesSize);
         void InsertImageInSeries(WriteableBitmap image, string seriesName, int position);
-        void AddImagesToSeries(IEnumerable<WriteableBitmap> images, string seriesName);
+        //void AddImagesToSeries(IEnumerable<WriteableBitmap> images, string seriesName);
         bool SetCurrentSeries(string SeriesName);
         int GetSeriesSize(string SeriesName);
         string GetCurrentSeries();

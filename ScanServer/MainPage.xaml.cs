@@ -47,31 +47,38 @@ namespace ScanServer
 
         private async void Server_ConnectionReceived(StreamSocketListener s, StreamSocketListenerConnectionReceivedEventArgs args)
         {
-            await this.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
+            try
             {
-                using (var writer = new DataWriter(args.Socket.OutputStream))
+                await this.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
                 {
-                    writer.WriteInt32(this.Images.Keys.Count);
-                    await writer.StoreAsync();
-
-                    foreach (var series in this.Images.Keys)
+                    using (var writer = new DataWriter(args.Socket.OutputStream))
                     {
-                        writer.WriteUInt32((uint)series.Length);
-                        writer.WriteString(series);
-                        writer.WriteInt32(this.Images[series].Count());
+                        writer.WriteInt32(this.Images.Keys.Count);
                         await writer.StoreAsync();
 
-                        foreach (var image in this.Images[series])
+                        foreach (var series in this.Images.Keys)
                         {
-                            writer.WriteInt32(image.PixelWidth);
-                            writer.WriteInt32(image.PixelHeight);
-                            writer.WriteUInt32(image.PixelBuffer.Length);
-                            writer.WriteBuffer(image.PixelBuffer);
+                            writer.WriteUInt32((uint)series.Length);
+                            writer.WriteString(series);
+                            writer.WriteInt32(this.Images[series].Count());
                             await writer.StoreAsync();
+
+                            foreach (var image in this.Images[series])
+                            {
+                                writer.WriteInt32(image.PixelWidth);
+                                writer.WriteInt32(image.PixelHeight);
+                                writer.WriteUInt32(image.PixelBuffer.Length);
+                                writer.WriteBuffer(image.PixelBuffer);
+                                await writer.StoreAsync();
+                            }
                         }
                     }
-                }
-            });
+                });
+            }
+            catch
+            {
+                return;
+            }
         }
     }
 }

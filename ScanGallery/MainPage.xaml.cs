@@ -64,9 +64,10 @@ namespace ScanGallery
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        protected override async void OnNavigatedTo(NavigationEventArgs e)
+        protected override void OnNavigatedTo(NavigationEventArgs e)
         {
-            var load = Task.Run(() => this.LoadAsync());
+            //var load = Task.Run(() => this.LoadAsync());
+            var load = this.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () => await this.LoadAsync());
         }
 
         private async Task LoadAsync()
@@ -76,17 +77,28 @@ namespace ScanGallery
 
             using (var reader = new DataReader(client.InputStream))
             {
+                await reader.LoadAsync(sizeof(int));
                 var numSeries = reader.ReadInt32();
                 foreach (var series in Range(numSeries))
                 {
+                    await reader.LoadAsync(sizeof(int));
                     var nameLength = reader.ReadUInt32();
+
+                    await reader.LoadAsync(nameLength);
                     var seriesName = reader.ReadString(nameLength);
+
+                    await reader.LoadAsync(sizeof(int));
                     var numImages = reader.ReadInt32();
+
+                    this.ImageCollection.CreateSeries(seriesName, numImages);
                     foreach (var position in Range(numImages))
                     {
+                        await reader.LoadAsync(sizeof(int) * 2 + sizeof(uint));
                         var width = reader.ReadInt32();
                         var height = reader.ReadInt32();
                         var bufferLength = reader.ReadUInt32();
+
+                        await reader.LoadAsync(bufferLength);
                         var buffer = reader.ReadBuffer(bufferLength);
 
                         var bitmap = new WriteableBitmap(width, height);
@@ -97,7 +109,6 @@ namespace ScanGallery
                                 await source.CopyToAsync(destination);
                             }
                         }
-
                         this.ImageCollection.InsertImageInSeries(bitmap, seriesName, position);
                     }
                 }

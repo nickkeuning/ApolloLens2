@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ScanGallery
+namespace ApolloLensLibrary.Imaging
 {
     public abstract class ImageCharactericsBase : IEquatable<ImageCharactericsBase>
     {
@@ -19,7 +19,7 @@ namespace ScanGallery
             if (this.GetType() != other.GetType())
                 return false;
             if (ReferenceEquals(this, other))
-                return true;            
+                return true;
             return this.Count == other.Count;
         }
 

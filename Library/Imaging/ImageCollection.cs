@@ -2,8 +2,9 @@
 using System.Linq;
 using Windows.UI.Xaml.Media.Imaging;
 using System.ComponentModel;
+using System;
 
-namespace ScanGallery
+namespace ApolloLensLibrary.Imaging
 {
     public class ImageCollection : IDicomStudy
     {
@@ -40,18 +41,18 @@ namespace ScanGallery
             return smartBitmap?.GetImage(this.Contrast, this.Brightness);
         }
 
-        public void AddImagesToSeries(IEnumerable<WriteableBitmap> images, string SeriesName)
+        public void AddImagesToSeries(IEnumerable<WriteableBitmap> images, string seriesName)
         {
             if (!images.Any())
                 return;
 
-            if (!this.Images.ContainsKey(SeriesName))
+            if (!this.Images.ContainsKey(seriesName))
             {
-                this.Images.Add(SeriesName, new List<SmartBitmap>());
-                this.SeriesIndexCache.Add(SeriesName, 0);
+                this.Images.Add(seriesName, new List<SmartBitmap>());
+                this.SeriesIndexCache.Add(seriesName, 0);
             }
 
-            this.Images[SeriesName].AddRange(images.Select(bm => new SmartBitmap(bm)));
+            this.Images[seriesName].AddRange(images.Select(bm => new SmartBitmap(bm)));
             this.OnPropertyChanged(nameof(this.GetSeriesNames));
         }
 
@@ -140,6 +141,25 @@ namespace ScanGallery
             }
             return false;
         }
+
+        public void CreateSeries(string seriesName, int seriesSize)
+        {
+            if (!this.Images.ContainsKey(seriesName))
+            {
+                this.Images.Add(seriesName, new List<SmartBitmap>(seriesSize));
+                this.SeriesIndexCache.Add(seriesName, 0);
+            }
+        }
+
+        public void InsertImageInSeries(WriteableBitmap image, string seriesName, int position)
+        {
+            if (!this.Images.ContainsKey(seriesName))
+                throw new ArgumentException();
+            if (position < 0 || position >= this.Images[seriesName].Count)
+                throw new ArgumentException();
+
+            this.Images[seriesName][position] = new SmartBitmap(image);
+        }
     }
 
     public interface IDicomStudy : INotifyPropertyChanged
@@ -148,7 +168,9 @@ namespace ScanGallery
 
         // Series
         IList<string> GetSeriesNames();
-        void AddImagesToSeries(IEnumerable<WriteableBitmap> images, string SeriesName);
+        void CreateSeries(string SeriesName, int SeriesSize);
+        void InsertImageInSeries(WriteableBitmap image, string seriesName, int position);
+        void AddImagesToSeries(IEnumerable<WriteableBitmap> images, string seriesName);
         bool SetCurrentSeries(string SeriesName);
         int GetSeriesSize(string SeriesName);
         string GetCurrentSeries();

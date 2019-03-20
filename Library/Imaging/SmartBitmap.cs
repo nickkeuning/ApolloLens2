@@ -4,7 +4,7 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.UI.Xaml.Media.Imaging;
 
 
-namespace ScanGallery
+namespace ApolloLensLibrary.Imaging
 {
     /// <summary>
     /// Super simple interface for getting an image with a given brightness and contrast.

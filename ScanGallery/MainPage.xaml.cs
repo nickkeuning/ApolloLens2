@@ -14,6 +14,11 @@ using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Navigation;
 using System.ComponentModel;
+using ApolloLensLibrary.Imaging;
+using System.Threading.Tasks;
+using Windows.Networking.Sockets;
+using Windows.Networking;
+using Windows.Storage.Streams;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -61,11 +66,47 @@ namespace ScanGallery
 
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
-            var images = await this.dicom.GetImages();
-            var mid = images.Count() / 2;
-            this.ImageCollection.AddImagesToSeries(images.Take(mid), "First");
-            this.ImageCollection.AddImagesToSeries(images.Skip(mid), "Second");
-            this.SeriesSelect.SelectedIndex = 0;
+            var load = Task.Run(() => this.LoadAsync());
+        }
+
+        private async Task LoadAsync()
+        {
+            var client = new StreamSocket();
+            await client.ConnectAsync(new HostName("10.0.0.192"), "9000");
+
+            using (var reader = new DataReader(client.InputStream))
+            {
+                var numSeries = reader.ReadInt32();
+                foreach (var series in Range(numSeries))
+                {
+                    var nameLength = reader.ReadUInt32();
+                    var seriesName = reader.ReadString(nameLength);
+                    var numImages = reader.ReadInt32();
+                    foreach (var position in Range(numImages))
+                    {
+                        var width = reader.ReadInt32();
+                        var height = reader.ReadInt32();
+                        var bufferLength = reader.ReadUInt32();
+                        var buffer = reader.ReadBuffer(bufferLength);
+
+                        var bitmap = new WriteableBitmap(width, height);
+                        using (var source = buffer.AsStream())
+                        {
+                            using (var destination = bitmap.PixelBuffer.AsStream())
+                            {
+                                await source.CopyToAsync(destination);
+                            }
+                        }
+
+                        this.ImageCollection.InsertImageInSeries(bitmap, seriesName, position);
+                    }
+                }
+            }
+        }
+
+        private IEnumerable<int> Range(int count)
+        {
+            return Enumerable.Range(0, count);
         }
 
         private void BrightnessUp_Click(object sender, RoutedEventArgs e)

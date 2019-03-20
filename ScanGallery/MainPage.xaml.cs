@@ -73,46 +73,60 @@ namespace ScanGallery
         private async Task LoadAsync()
         {
             var client = new StreamSocket();
-            await client.ConnectAsync(new HostName("10.0.0.192"), "9000");
+            await client.ConnectAsync(new HostName("35.3.90.141"), "9000");
 
             using (var reader = new DataReader(client.InputStream))
             {
                 await reader.LoadAsync(sizeof(int));
                 var numSeries = reader.ReadInt32();
-                foreach (var series in Range(numSeries))
+                foreach (var _ in Range(numSeries))
                 {
-                    await reader.LoadAsync(sizeof(int));
-                    var nameLength = reader.ReadUInt32();
-
-                    await reader.LoadAsync(nameLength);
-                    var seriesName = reader.ReadString(nameLength);
-
-                    await reader.LoadAsync(sizeof(int));
-                    var numImages = reader.ReadInt32();
-
-                    this.ImageCollection.CreateSeries(seriesName, numImages);
-                    foreach (var position in Range(numImages))
-                    {
-                        await reader.LoadAsync(sizeof(int) * 2 + sizeof(uint));
-                        var width = reader.ReadInt32();
-                        var height = reader.ReadInt32();
-                        var bufferLength = reader.ReadUInt32();
-
-                        await reader.LoadAsync(bufferLength);
-                        var buffer = reader.ReadBuffer(bufferLength);
-
-                        var bitmap = new WriteableBitmap(width, height);
-                        using (var source = buffer.AsStream())
-                        {
-                            using (var destination = bitmap.PixelBuffer.AsStream())
-                            {
-                                await source.CopyToAsync(destination);
-                            }
-                        }
-                        this.ImageCollection.InsertImageInSeries(bitmap, seriesName, position);
-                    }
+                    await this.LoadSeries(reader);
                 }
             }
+            this.SeriesSelect.SelectedIndex = 0;
+        }
+
+        private async Task LoadSeries(DataReader reader)
+        {
+            await reader.LoadAsync(sizeof(int));
+            var nameLength = reader.ReadUInt32();
+
+            await reader.LoadAsync(nameLength);
+            var seriesName = reader.ReadString(nameLength);
+
+            await reader.LoadAsync(sizeof(int));
+            var numImages = reader.ReadInt32();
+
+            this.ImageCollection.CreateSeries(seriesName, numImages);
+            foreach (var position in Range(numImages))
+            {
+                await this.LoadImage(reader, seriesName, position);
+            }
+        }
+
+        private async Task LoadImage(DataReader reader, string seriesName, int position)
+        {
+            await reader.LoadAsync(sizeof(int) * 2 + sizeof(uint));
+            var width = reader.ReadInt32();
+            var height = reader.ReadInt32();
+            var bufferLength = reader.ReadUInt32();
+
+            await reader.LoadAsync(bufferLength);
+            var buffer = reader.ReadBuffer(bufferLength);
+
+            await this.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
+            {
+                var bitmap = new WriteableBitmap(width, height);
+                using (var source = buffer.AsStream())
+                {
+                    using (var destination = bitmap.PixelBuffer.AsStream())
+                    {
+                        await source.CopyToAsync(destination);
+                    }
+                }
+                this.ImageCollection.InsertImageInSeries(bitmap, seriesName, position);
+            });
         }
 
         private IEnumerable<int> Range(int count)

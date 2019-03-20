@@ -149,6 +149,7 @@ namespace ApolloLensLibrary.Imaging
                 this.Images.Add(seriesName, new SmartBitmap[seriesSize]);
                 this.SeriesIndexCache.Add(seriesName, 0);
             }
+            this.OnPropertyChanged(nameof(this.GetSeriesNames));
         }
 
         public void InsertImageInSeries(WriteableBitmap image, string seriesName, int position)

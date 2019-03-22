@@ -66,8 +66,9 @@ namespace ScanGallery
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
-            //var load = Task.Run(() => this.LoadAsync());
-            var load = this.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () => await this.LoadAsync());
+            var load = this.Dispatcher.RunAsync(
+                Windows.UI.Core.CoreDispatcherPriority.Normal, 
+                async () => await this.LoadAsync());
         }
 
         private async Task LoadAsync()
@@ -115,18 +116,15 @@ namespace ScanGallery
             await reader.LoadAsync(bufferLength);
             var buffer = reader.ReadBuffer(bufferLength);
 
-            await this.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
+            var bitmap = new WriteableBitmap(width, height);
+            using (var source = buffer.AsStream())
             {
-                var bitmap = new WriteableBitmap(width, height);
-                using (var source = buffer.AsStream())
+                using (var destination = bitmap.PixelBuffer.AsStream())
                 {
-                    using (var destination = bitmap.PixelBuffer.AsStream())
-                    {
-                        await source.CopyToAsync(destination);
-                    }
+                    await source.CopyToAsync(destination);
                 }
-                this.ImageCollection.InsertImageInSeries(bitmap, seriesName, position);
-            });
+            }
+            this.ImageCollection.AddImageToSeries(bitmap, seriesName, position);
         }
 
         private IEnumerable<int> Range(int count)

@@ -2,6 +2,10 @@
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.UI.Xaml.Media.Imaging;
+using System;
+using System.Threading.Tasks;
+using Windows.Storage.Streams;
+using Windows.Graphics.Imaging;
 
 
 namespace ApolloLensLibrary.Imaging
@@ -13,36 +17,97 @@ namespace ApolloLensLibrary.Imaging
     /// </summary>
     public class SmartBitmap
     {
-        private WriteableBitmap Original { get; }
-        private WriteableBitmap Current { get; set; }
+        private byte[] OriginalBytes { get; }
+        private byte[] CurrentBytes { get; set; }
 
+        private static readonly object brightLock = new object();
+        private static readonly object contrastLock = new object();
         private Brightness Brightness { get; }
         private Contrast Contrast { get; }
 
-        public SmartBitmap(WriteableBitmap bitmap)
+        public int Width { get; }
+        public int Height { get; }
+
+        public event EventHandler ImageUpdated;
+
+        public SmartBitmap(byte[] image, int width, int height)
         {
-            this.Original = this.Current = bitmap;
+            this.OriginalBytes = image;
+            this.CurrentBytes = new byte[image.Length];
+            image.CopyTo(this.CurrentBytes, 0);
+
+            this.Width = width;
+            this.Height = height;
 
             this.Brightness = new Brightness();
             this.Contrast = new Contrast();
         }
 
-        public WriteableBitmap GetImage(Contrast contrast, Brightness brightness)
+        public byte[] GetImage()
         {
-            if (brightness.IsDefault && contrast.IsDefault)
+            return this.CurrentBytes;
+        }
+
+        public void AdjustImage(Contrast contrast, Brightness brightness)
+        {
+            if (!this.SetBrightnessAndContrast(contrast, brightness))
             {
-                return this.Original;
+                return;
             }
-            if (!this.Brightness.Equals(brightness) || !this.Contrast.Equals(contrast))
+
+            var adjust = Task.Run(() =>
             {
-                this.Contrast.SetTo(contrast);
-                this.Brightness.SetTo(brightness);
-                this.Current = CalculateImage(
-                    this.Original,
-                    this.Brightness.Value,
-                    this.Contrast.Value);
+                if (contrast.IsDefault && brightness.IsDefault)
+                {
+                    this.CurrentBytes = this.OriginalBytes;
+                    this.ImageUpdated?.Invoke(this, EventArgs.Empty);
+                    return;
+                }
+
+                var temp = new byte[this.OriginalBytes.Length];
+
+                var pixel = new byte[4];
+                using (Stream source = this.OriginalBytes.AsBuffer().AsStream())
+                {
+                    using (Stream dest = temp.AsBuffer().AsStream())
+                    {
+                        while (source.Read(pixel, 0, 4) > 0)
+                        {
+                            pixel = CalculatePixel(pixel, brightness.Value, contrast.Value);
+                            dest.Write(pixel, 0, 4);
+                        }
+                    }
+                }
+
+                lock (brightLock)
+                {
+                    lock (contrastLock)
+                    {
+                        if (this.Brightness.Equals(brightness) && this.Contrast.Equals(contrast))
+                        {
+                            this.CurrentBytes = temp;
+                            this.ImageUpdated?.Invoke(this, EventArgs.Empty);
+                        }
+                    }
+                }
+            });
+        }
+
+        private bool SetBrightnessAndContrast(Contrast contrast, Brightness brightness)
+        {
+            lock (brightLock)
+            {
+                lock (contrastLock)
+                {
+                    if (!this.Contrast.Equals(contrast) || !this.Brightness.Equals(brightness))
+                    {
+                        this.Contrast.SetTo(contrast);
+                        this.Brightness.SetTo(brightness);
+                        return true;
+                    }
+                    return false;
+                }
             }
-            return this.Current;
         }
 
         /// <summary>
@@ -83,7 +148,7 @@ namespace ApolloLensLibrary.Imaging
         /// <param name="brightness"></param>
         /// <param name="contrast"></param>
         /// <param name="BlackAndWhite"></param>
-        private static byte[] CalculatePixel(byte[] pixel, double brightness, double contrast, bool BlackAndWhite)
+        private static byte[] CalculatePixel(byte[] pixel, double brightness, double contrast, bool BlackAndWhite = true)
         {
             var alpha = pixel.Last() / (double)255;
             // Save some time since all color channels are the same in black and white images

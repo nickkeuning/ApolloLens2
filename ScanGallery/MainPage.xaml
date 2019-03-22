@@ -12,81 +12,87 @@
             <ColumnDefinition
                 Width="*" />
             <ColumnDefinition
-                Width="auto" />
+                Width="*" />
             <ColumnDefinition
                 Width="auto" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition
-                Height="auto" />
-            <RowDefinition
-                Height="auto" />
-            <RowDefinition
-                Height="auto" />
-            <RowDefinition
-                Height="auto" />
-            <RowDefinition
                 Height="*" />
+            <RowDefinition
+                Height="auto" />
+            <RowDefinition
+                Height="auto" />
         </Grid.RowDefinitions>
         <Image
             Grid.Column="0"
+            Grid.ColumnSpan="2"
             Grid.Row="0"
-            Grid.RowSpan="5"
             Margin="24"
             x:Name="ImageDisplay" 
             Source="{Binding Image, Mode=OneWay}"/>
-        <Button
-            Grid.Column="1"
-            Grid.Row="0"
-            x:Name="BrightnessUp"
-            Margin="12"
-            HorizontalAlignment="Stretch"
-            Content="Increase Brightness"
-            Click="BrightnessUp_Click" />
-        <Button
+        <StackPanel
             Grid.Column="2"
             Grid.Row="0"
-            x:Name="ContrastUp"
-            Margin="12"
-            HorizontalAlignment="Stretch"
-            Content="Increase Contrast"
-            Click="ContrastUp_Click" />
-        <Button
-            Grid.Column="1"
+            Visibility="Visible">
+            <Button
+                Grid.Column="1"
+                Grid.Row="1"
+                x:Name="BrightnessUp"
+                Margin="12"
+                HorizontalAlignment="Stretch"
+                Content="Increase Brightness"
+                Click="BrightnessUp_Click" />
+            <Button
+                Grid.Column="2"
+                Grid.Row="1"
+                x:Name="ContrastUp"
+                Margin="12"
+                HorizontalAlignment="Stretch"
+                Content="Increase Contrast"
+                Click="ContrastUp_Click" />
+            <Button
+                Grid.Column="1"
+                Grid.Row="2"
+                x:Name="BrightnessDown"
+                Margin="12"
+                HorizontalAlignment="Stretch"
+                Content="Decrease Brightness"
+                Click="BrightnessDown_Click" />
+            <Button
+                Grid.Column="2"
+                Grid.Row="2"
+                x:Name="ContrastDown"
+                Margin="12"
+                HorizontalAlignment="Stretch"
+                Content="Decrease Contrast"
+                Click="ContrastDown_Click" />
+            <Button
+                Grid.Column="1"
+                Grid.ColumnSpan="2"
+                Grid.Row="3"
+                HorizontalAlignment="Stretch"
+                x:Name="Reset"
+                Margin="12"
+                Content="Reset"
+                Click="Reset_Click" />
+        </StackPanel>
+
+        <RepeatButton
+            Grid.Column="0"
             Grid.Row="1"
-            x:Name="BrightnessDown"
-            Margin="12"
-            HorizontalAlignment="Stretch"
-            Content="Decrease Brightness"
-            Click="BrightnessDown_Click" />
-        <Button
-            Grid.Column="2"
-            Grid.Row="1"
-            x:Name="ContrastDown"
-            Margin="12"
-            HorizontalAlignment="Stretch"
-            Content="Decrease Contrast"
-            Click="ContrastDown_Click" />
-        <Button
-            Grid.Column="1"
-            Grid.ColumnSpan="2"
-            Grid.Row="2"            
-            HorizontalAlignment="Stretch"
-            x:Name="Reset"
-            Margin="12"
-            Content="Reset"
-            Click="Reset_Click" />
-        <Button
-            Grid.Column="1"
-            Grid.Row="3"
+            Delay="500"
+            Interval="100"
             HorizontalAlignment="Stretch"
             x:Name="Previous"
             Margin="12"
             Content="Previous Image"
             Click="Previous_Click" />
-        <Button
-            Grid.Column="2"
-            Grid.Row="3"
+        <RepeatButton
+            Grid.Column="1"
+            Grid.Row="1"
+            Delay="500"
+            Interval="100"
             HorizontalAlignment="Stretch"
             x:Name="Next"
             Margin="12"
@@ -94,9 +100,9 @@
             Click="Next_Click" />
         <ComboBox 
             x:Name="SeriesSelect"
-            Grid.Column="1"
+            Grid.Column="0"
             Grid.ColumnSpan="2"
-            Grid.Row="4" 
+            Grid.Row="2" 
             HorizontalAlignment="Stretch"
             Margin="12"
             ItemsSource="{Binding Series, Mode=OneWay}"

@@ -3,6 +3,11 @@ using System.Linq;
 using Windows.UI.Xaml.Media.Imaging;
 using System.ComponentModel;
 using System;
+using Windows.Storage;
+using Windows.Storage.Streams;
+using System.IO;
+using Windows.Graphics.Imaging;
+
 
 namespace ApolloLensLibrary.Imaging
 {
@@ -27,64 +32,53 @@ namespace ApolloLensLibrary.Imaging
             this.CurrentSeries = "";
         }
 
-        private void OnPropertyChanged(string PropertyName)
+        public event EventHandler<SmartBitmap> ImageChanged;
+
+        private void OnImageChanged()
         {
-            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(PropertyName));
+            this.ImageChanged?.Invoke(this, this.GetCurrentSmartBitmap());
         }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        public WriteableBitmap GetCurrentImage()
-        {
-            this.Images.TryGetValue(this.CurrentSeries, out var series);
-            var smartBitmap = series?.ElementAtOrDefault(this.CurrentIndex);
-            return smartBitmap?.GetImage(this.Contrast, this.Brightness);
-        }
-
-        //public void AddImagesToSeries(IEnumerable<WriteableBitmap> images, string seriesName)
-        //{
-        //    if (!images.Any())
-        //        return;
-
-        //    if (!this.Images.ContainsKey(seriesName))
-        //    {
-        //        this.Images.Add(seriesName, new List<SmartBitmap>());
-        //        this.SeriesIndexCache.Add(seriesName, 0);
-        //    }
-
-        //    this.Images[seriesName].AddRange(images.Select(bm => new SmartBitmap(bm)));
-        //    this.OnPropertyChanged(nameof(this.GetSeriesNames));
-        //}
 
         public void DecreaseBrightness()
         {
             this.Brightness.Decrease();
-            this.OnPropertyChanged(nameof(this.GetCurrentImage));
+            this.SetImageCharacteristics();
         }
 
         public void DecreaseContrast()
         {
             this.Contrast.Decrease();
-            this.OnPropertyChanged(nameof(this.GetCurrentImage));
+            this.SetImageCharacteristics();
         }
 
         public void IncreaseBrightness()
         {
             this.Brightness.Increase();
-            this.OnPropertyChanged(nameof(this.GetCurrentImage));
+            this.SetImageCharacteristics();
         }
 
         public void IncreaseContrast()
         {
             this.Contrast.Increase();
-            this.OnPropertyChanged(nameof(this.GetCurrentImage));
+            this.SetImageCharacteristics();
         }
 
         public void Reset()
         {
             this.Brightness.Reset();
             this.Contrast.Reset();
-            this.OnPropertyChanged(nameof(this.GetCurrentImage));
+            this.SetImageCharacteristics();
+        }
+
+        private void SetImageCharacteristics()
+        {
+            this.GetCurrentSmartBitmap().AdjustImage(this.Contrast, this.Brightness);
+        }
+
+        private SmartBitmap GetCurrentSmartBitmap()
+        {
+            this.Images.TryGetValue(this.CurrentSeries, out var series);
+            return series?.ElementAtOrDefault(this.CurrentIndex);
         }
 
         public string GetCurrentSeries()
@@ -112,7 +106,8 @@ namespace ApolloLensLibrary.Imaging
             if (this.CurrentIndex + 1 < currentSeriesSize)
             {
                 this.CurrentIndex++;
-                this.OnPropertyChanged(nameof(this.GetCurrentImage));
+                this.SetImageCharacteristics();
+                this.OnImageChanged();
                 return true;
             }
             return false;
@@ -123,23 +118,23 @@ namespace ApolloLensLibrary.Imaging
             if (this.CurrentIndex > 0)
             {
                 this.CurrentIndex--;
-                this.OnPropertyChanged(nameof(this.GetCurrentImage));
+                this.SetImageCharacteristics();
+                this.OnImageChanged();
                 return true;
             }
             return false;
         }
 
-        public bool SetCurrentSeries(string SeriesName)
+        public void SetCurrentSeries(string SeriesName)
         {
             if (this.Images.ContainsKey(SeriesName))
             {
                 this.SeriesIndexCache[this.CurrentSeries] = this.CurrentIndex;
                 this.CurrentIndex = this.SeriesIndexCache[SeriesName];
                 this.CurrentSeries = SeriesName;
-                this.OnPropertyChanged(nameof(this.GetCurrentImage));
-                return true;
+                this.SetImageCharacteristics();
+                this.OnImageChanged();
             }
-            return false;
         }
 
         public void CreateSeries(string seriesName, int seriesSize)
@@ -149,30 +144,38 @@ namespace ApolloLensLibrary.Imaging
                 this.Images.Add(seriesName, new SmartBitmap[seriesSize]);
                 this.SeriesIndexCache.Add(seriesName, 0);
             }
-            this.OnPropertyChanged(nameof(this.GetSeriesNames));
         }
 
-        public void InsertImageInSeries(WriteableBitmap image, string seriesName, int position)
+        public void AddImageToSeries(byte[] image, string seriesName, int position, int width, int height)
         {
             if (!this.Images.ContainsKey(seriesName))
                 throw new ArgumentException();
             if (position < 0 || position >= this.Images[seriesName].Count())
                 throw new ArgumentException();
 
-            this.Images[seriesName][position] = new SmartBitmap(image);
+            var smartBitmap = new SmartBitmap(image, width, height);
+            smartBitmap.ImageUpdated += (s, e) =>
+            {
+                if (seriesName == this.CurrentSeries && position == this.CurrentIndex)
+                {
+                    this.OnImageChanged();
+                }
+            };
+
+            this.Images[seriesName][position] = smartBitmap;
         }
     }
 
-    public interface IDicomStudy : INotifyPropertyChanged
+    public interface IDicomStudy
     {
-        WriteableBitmap GetCurrentImage();
+        //byte[] GetCurrentImage();
+        event EventHandler<SmartBitmap> ImageChanged;
 
         // Series
         IList<string> GetSeriesNames();
         void CreateSeries(string SeriesName, int SeriesSize);
-        void InsertImageInSeries(WriteableBitmap image, string seriesName, int position);
-        //void AddImagesToSeries(IEnumerable<WriteableBitmap> images, string seriesName);
-        bool SetCurrentSeries(string SeriesName);
+        void AddImageToSeries(byte[] image, string seriesName, int position, int width, int height);
+        void SetCurrentSeries(string SeriesName);
         int GetSeriesSize(string SeriesName);
         string GetCurrentSeries();
 

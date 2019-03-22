@@ -10,27 +10,71 @@ using System.Xml.Linq;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using Windows.UI.Xaml.Media.Imaging;
+using System.Runtime.InteropServices.WindowsRuntime;
+using Windows.Graphics.Imaging;
+using Dicom.Imaging.Render;
+
+
 
 namespace ApolloLensLibrary.Imaging
 {
     public class DicomManager
     {
-        public static async Task<IDictionary<string, IEnumerable<WriteableBitmap>>> GetStudy()
+        //public static async Task<IDictionary<string, IEnumerable<Tuple<byte[]>>> GetStudy()
+        //{
+        //    var directory = await GetDicomDirectory();
+        //    var imagePaths = await directory.GetImagePaths();
+
+        //    var collection = new List<Tuple<string, int, SoftwareBitmap>>(imagePaths.Count());
+        //    foreach (var path in imagePaths)
+        //    {
+        //        collection.Add(await ProcessImagePath(directory, path));
+        //    }
+
+        //    return collection
+        //        .GroupBy(t => t.Item1)
+        //        .ToDictionary(
+        //            grp => grp.Key,
+        //            grp => grp.OrderBy(t => t.Item2).Select(t => t.Item3));
+        //}
+
+        public static async Task<ImageCollection> GetStudy()
         {
             var directory = await GetDicomDirectory();
             var imagePaths = await directory.GetImagePaths();
 
-            var collection = new List<Tuple<string, int, WriteableBitmap>>(imagePaths.Count());
+            var collection = new List<Tuple<string, int, byte[], int, int>>(imagePaths.Count());
             foreach (var path in imagePaths)
             {
                 collection.Add(await ProcessImagePath(directory, path));
             }
 
-            return collection
-                .GroupBy(t => t.Item1)
+            var grouped = collection
+                .GroupBy(tuple => tuple.Item1)
                 .ToDictionary(
                     grp => grp.Key,
-                    grp => grp.OrderBy(t => t.Item2).Select(t => t.Item3));
+                    grp => grp.OrderBy(
+                        tuple => tuple.Item2)
+                        .Select((tuple, index) => new
+                        {
+                            Image = tuple.Item3,
+                            Position = index,
+                            Width = tuple.Item4,
+                            Height = tuple.Item5
+                        }));
+
+            var result = new ImageCollection();
+
+            foreach (var series in grouped.Keys)
+            {
+                result.CreateSeries(series, grouped[series].Count());
+                foreach (var im in grouped[series])
+                {
+                    result.AddImageToSeries(im.Image, series, im.Position, im.Width, im.Height);
+                }
+            }
+
+            return result;
         }
 
         private static async Task<StorageFolder> GetDicomDirectory()
@@ -42,7 +86,7 @@ namespace ApolloLensLibrary.Imaging
             return await folderPicker.PickSingleFolderAsync();
         }
 
-        private static async Task<Tuple<string, int, WriteableBitmap>> ProcessImagePath(StorageFolder directory, string path)
+        private static async Task<Tuple<string, int, byte[], int, int>> ProcessImagePath(StorageFolder directory, string path)
         {
             var file = await directory.GetFileAsync(path);
             var stream = await file.OpenStreamForReadAsync();
@@ -56,14 +100,22 @@ namespace ApolloLensLibrary.Imaging
                 .FirstOrDefault();
 
             var series = xdoc
-                .GetElementsByDicomKeyword("SeriesNumber")
+                .GetElementsByDicomKeyword("SeriesDescription")
                 .Select(elt => elt.Value)
                 .FirstOrDefault();
 
             var dicomImage = new DicomImage(dicomFile.Dataset);
-            var bitmap = dicomImage.RenderImage().AsWriteableBitmap();
+            var bitmap = dicomImage.RenderImage().AsWriteableBitmap().PixelBuffer;
+            var result = new byte[bitmap.Length];
+            using (var source = bitmap.AsStream())
+            {
+                using (var dest = result.AsBuffer().AsStream())
+                {
+                    source.CopyTo(dest);
+                }
+            }
 
-            return Tuple.Create(series, position, bitmap);
+            return Tuple.Create(series, position, result, dicomImage.Width, dicomImage.Height);
         }
     }
 

@@ -1,0 +1,77 @@
+﻿<Page
+    x:Class="ScanGalleryBasic.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:ScanGalleryBasic"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+    Width="auto">
+    <Grid>
+        <Image
+            Source="{Binding SoftwareBitmapSource}"
+            VerticalAlignment="Stretch"
+            HorizontalAlignment="Stretch" />
+        <RepeatButton            
+            Canvas.ZIndex="1"
+            Delay="500"
+            Interval="100"
+            x:Name="Next"
+            Click="Next_Click"
+            Padding="0,0,0,12"
+            Opacity="0.5"
+            FontSize="96"
+            Margin="24"
+            HorizontalAlignment="Right"
+            Content="&gt;"
+            Foreground="#FF00D1FF" />
+        <RepeatButton
+            Canvas.ZIndex="1"            
+            Delay="500"
+            Interval="100"
+            x:Name="Previous"
+            Click="Previous_Click"
+            Padding="0,0,0,12"
+            Opacity="0.5"
+            FontSize="96"
+            Margin="24"
+            HorizontalAlignment="Left"
+            Content="&lt;"
+            Foreground="#FF00D1FF"/>
+        <Button
+            x:Name="BrightUp"
+            Click="BrightUp_Click" 
+            Content="Brightness Up"
+            VerticalAlignment="Top"
+            Margin="24"/>
+        <Button
+            x:Name="BrightDown"
+            Click="BrightDown_Click"
+            Content="Brightness Up"
+            VerticalAlignment="Bottom"
+            Margin="24" />
+        <Button
+            x:Name="ContrastUp"
+            Click="ContrastUp_Click"
+            Content="Brightness Up"
+            VerticalAlignment="Top"
+            HorizontalAlignment="Right"
+            Margin="24" />
+        <Button
+            x:Name="ContrastDown"
+            Click="ContrastDown_Click"
+            Content="Brightness Up"
+            VerticalAlignment="Bottom"
+            HorizontalAlignment="Right"
+            Margin="24" />
+        <ComboBox
+            Margin="24"
+            SelectionChanged="SeriesSelect_SelectionChanged"
+            ItemsSource="{Binding SeriesNames}"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            FontSize="24"
+            x:Name="SeriesSelect" />
+    </Grid>
+</Page>

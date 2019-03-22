@@ -41,7 +41,7 @@ namespace ScanServer
 
             var server = new StreamSocketListener();
             server.ConnectionReceived += this.Server_ConnectionReceived;
-            await server.BindServiceNameAsync("9000");
+            await server.BindServiceNameAsync("8080");
             this.ReadyBlock.Visibility = Visibility.Visible;
         }
 

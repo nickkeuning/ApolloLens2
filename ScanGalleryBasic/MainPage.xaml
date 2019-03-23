@@ -10,7 +10,7 @@
     Width="auto">
     <Grid>
         <Image
-            Source="{Binding SoftwareBitmapSource}"
+            Source="{Binding SoftwareBitmapSource, Mode=OneWay}"
             VerticalAlignment="Stretch"
             HorizontalAlignment="Stretch" />
         <RepeatButton            
@@ -73,5 +73,14 @@
             VerticalAlignment="Top"
             FontSize="24"
             x:Name="SeriesSelect" />
+        <Slider
+            x:Name="Slider"
+            Minimum="0"
+            Maximum="10"
+            TickFrequency="1"
+            ValueChanged="Slider_ValueChanged" 
+            HorizontalAlignment="Center"
+            VerticalAlignment="Bottom"
+            Width="100"/>
     </Grid>
 </Page>

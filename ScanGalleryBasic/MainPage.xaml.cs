@@ -32,7 +32,7 @@ namespace ScanGalleryBasic
         private IDicomStudy ImageCollection { get; set; }
 
         public IList<string> SeriesNames => this.ImageCollection?.GetSeriesNames();
-        public SoftwareBitmapSource SoftwareBitmapSource { get; }
+        public SoftwareBitmapSource SoftwareBitmapSource { get; set; }
 
         public MainPage()
         {
@@ -56,14 +56,16 @@ namespace ScanGalleryBasic
                 await this.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
                 {
                     var bm = SoftwareBitmap.CreateCopyFromBuffer(
-                    smartBm.GetImage().AsBuffer(),
-                    BitmapPixelFormat.Bgra8,
-                    smartBm.Width,
-                    smartBm.Height,
-                    BitmapAlphaMode.Premultiplied);
+                        smartBm.GetImage().AsBuffer(),
+                        BitmapPixelFormat.Bgra8,
+                        smartBm.Width,
+                        smartBm.Height,
+                        BitmapAlphaMode.Premultiplied);
 
+                    this.SoftwareBitmapSource = new SoftwareBitmapSource();
                     await this.SoftwareBitmapSource.SetBitmapAsync(bm);
-                });                
+                    this.OnPropertyChanged(nameof(this.SoftwareBitmapSource));
+                });
             };
 
             this.OnPropertyChanged(nameof(this.SeriesNames));
@@ -104,6 +106,18 @@ namespace ScanGalleryBasic
         private void ContrastDown_Click(object sender, RoutedEventArgs e)
         {
             this.ImageCollection.DecreaseContrast();
+        }
+
+        private void Slider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+        {
+            if (e.NewValue > e.OldValue)
+            {
+                this.ImageCollection.MoveNext();
+            }
+            else
+            {
+                this.ImageCollection.MovePrevious();
+            }
         }
     }
 }

@@ -36,7 +36,7 @@ namespace ApolloLensLibrary.Imaging
 
         private void OnImageChanged()
         {
-            this.ImageChanged?.Invoke(this, this.GetCurrentSmartBitmap());
+            this.ImageChanged?.Invoke(this, this.CurrentImage());
         }
 
         public void DecreaseBrightness()
@@ -72,18 +72,30 @@ namespace ApolloLensLibrary.Imaging
 
         private void SetImageCharacteristics()
         {
-            this.GetCurrentSmartBitmap().AdjustImage(this.Contrast, this.Brightness);
+            this.CurrentImage().AdjustImage(this.Contrast, this.Brightness);
+            this.NextImage()?.AdjustImage(this.Contrast, this.Brightness);
+            this.PreviousImage()?.AdjustImage(this.Contrast, this.Brightness);
         }
 
-        private SmartBitmap GetCurrentSmartBitmap()
+        private IList<SmartBitmap> GetCurrentSeries()
         {
             this.Images.TryGetValue(this.CurrentSeries, out var series);
-            return series?.ElementAtOrDefault(this.CurrentIndex);
+            return series;
         }
 
-        public string GetCurrentSeries()
+        private SmartBitmap CurrentImage()
         {
-            return this.CurrentSeries;
+            return this.GetCurrentSeries()?.ElementAtOrDefault(this.CurrentIndex);
+        }
+
+        private SmartBitmap NextImage()
+        {
+            return this.GetCurrentSeries()?.ElementAtOrDefault(this.CurrentIndex + 1);
+        }
+
+        private SmartBitmap PreviousImage()
+        {
+            return this.GetCurrentSeries()?.ElementAtOrDefault(this.CurrentIndex - 1);
         }
 
         public IList<string> GetSeriesNames()
@@ -91,22 +103,12 @@ namespace ApolloLensLibrary.Imaging
             return this.Images.Keys.ToList();
         }
 
-        public int GetSeriesSize(string SeriesName)
-        {
-            if (!this.Images.ContainsKey(SeriesName))
-            {
-                throw new System.ArgumentException("Series not contained in collection.");
-            }
-            return this.Images[SeriesName].Count();
-        }
-
         public bool MoveNext()
         {
-            var currentSeriesSize = this.GetSeriesSize(this.CurrentSeries);
-            if (this.CurrentIndex + 1 < currentSeriesSize)
+            if (this.CurrentIndex + 1 < this.CurrentSeriesSize())
             {
                 this.CurrentIndex++;
-                this.SetImageCharacteristics();
+                this.NextImage()?.AdjustImage(this.Contrast, this.Brightness);
                 this.OnImageChanged();
                 return true;
             }
@@ -118,7 +120,7 @@ namespace ApolloLensLibrary.Imaging
             if (this.CurrentIndex > 0)
             {
                 this.CurrentIndex--;
-                this.SetImageCharacteristics();
+                this.PreviousImage()?.AdjustImage(this.Contrast, this.Brightness);
                 this.OnImageChanged();
                 return true;
             }
@@ -164,6 +166,21 @@ namespace ApolloLensLibrary.Imaging
 
             this.Images[seriesName][position] = smartBitmap;
         }
+
+        public int CurrentSeriesSize()
+        {
+            return this.GetCurrentSeries().Count;
+        }
+
+        public void JumptTo(int index)
+        {
+            if (index < 0 || index >= this.CurrentSeriesSize())
+                throw new ArgumentException();
+
+            this.CurrentIndex = index;
+            this.SetImageCharacteristics();
+            this.OnImageChanged();
+        }
     }
 
     public interface IDicomStudy
@@ -176,12 +193,12 @@ namespace ApolloLensLibrary.Imaging
         void CreateSeries(string SeriesName, int SeriesSize);
         void AddImageToSeries(byte[] image, string seriesName, int position, int width, int height);
         void SetCurrentSeries(string SeriesName);
-        int GetSeriesSize(string SeriesName);
-        string GetCurrentSeries();
+        int CurrentSeriesSize();
 
         // Within series
         bool MovePrevious();
         bool MoveNext();
+        void JumptTo(int index);
 
         // Image characteristics
         void IncreaseContrast();

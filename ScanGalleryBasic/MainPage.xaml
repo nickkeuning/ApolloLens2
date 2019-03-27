@@ -7,6 +7,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+    Height="auto"
     Width="auto">
     <Grid>
         <Image
@@ -21,7 +22,7 @@
             Click="Next_Click"
             Padding="0,0,0,12"
             Opacity="0.5"
-            FontSize="96"
+            FontSize="72"
             Margin="24"
             HorizontalAlignment="Right"
             Content="&gt;"
@@ -34,7 +35,7 @@
             Click="Previous_Click"
             Padding="0,0,0,12"
             Opacity="0.5"
-            FontSize="96"
+            FontSize="72"
             Margin="24"
             HorizontalAlignment="Left"
             Content="&lt;"
@@ -44,27 +45,31 @@
             Click="BrightUp_Click" 
             Content="Brightness Up"
             VerticalAlignment="Top"
-            Margin="24"/>
+            Margin="24"
+            Foreground="#FF00D1FF"/>
         <Button
             x:Name="BrightDown"
             Click="BrightDown_Click"
-            Content="Brightness Up"
+            Content="Brightness Down"
             VerticalAlignment="Bottom"
-            Margin="24" />
+            Margin="24"
+            Foreground="#FF00D1FF" />
         <Button
             x:Name="ContrastUp"
             Click="ContrastUp_Click"
-            Content="Brightness Up"
+            Content="Contrast Up"
             VerticalAlignment="Top"
             HorizontalAlignment="Right"
-            Margin="24" />
+            Margin="24"
+            Foreground="#FF00D1FF" />
         <Button
             x:Name="ContrastDown"
             Click="ContrastDown_Click"
-            Content="Brightness Up"
+            Content="Contrast Down"
             VerticalAlignment="Bottom"
             HorizontalAlignment="Right"
-            Margin="24" />
+            Margin="24"
+            Foreground="#FF00D1FF" />
         <ComboBox
             Margin="24"
             SelectionChanged="SeriesSelect_SelectionChanged"
@@ -79,10 +84,9 @@
             Maximum="10"
             StepFrequency="1"
             Value="{Binding Index}"            
-            ValueChanged="Slider_ValueChanged"
-            
+            ValueChanged="Slider_ValueChanged"            
             HorizontalAlignment="Stretch"
             VerticalAlignment="Bottom"
-            Margin="200,0,200,0"/>
+            Margin="96,0,96,0"/>
     </Grid>
 </Page>

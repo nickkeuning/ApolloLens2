@@ -77,10 +77,12 @@
             x:Name="Slider"
             Minimum="0"
             Maximum="10"
-            TickFrequency="1"
-            ValueChanged="Slider_ValueChanged" 
-            HorizontalAlignment="Center"
+            StepFrequency="1"
+            Value="{Binding Index}"            
+            ValueChanged="Slider_ValueChanged"
+            
+            HorizontalAlignment="Stretch"
             VerticalAlignment="Bottom"
-            Width="100"/>
+            Margin="200,0,200,0"/>
     </Grid>
 </Page>

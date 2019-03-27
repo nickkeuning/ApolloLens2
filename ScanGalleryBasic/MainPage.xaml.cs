@@ -70,22 +70,31 @@ namespace ScanGalleryBasic
 
             this.OnPropertyChanged(nameof(this.SeriesNames));
             this.SeriesSelect.SelectedIndex = 0;
+            this.SetSlider();
+        }
+
+        private void SetSlider()
+        {
+            this.Slider.Minimum = 0;
+            this.Slider.Maximum = this.ImageCollection.GetCurrentSeriesSize();
+            this.Slider.Value = this.ImageCollection.GetCurrentIndex();
         }
 
         private void Next_Click(object sender, RoutedEventArgs e)
         {
-            this.ImageCollection.MoveNext();
+            this.Slider.Value += 1;
         }
 
         private void Previous_Click(object sender, RoutedEventArgs e)
         {
-            this.ImageCollection.MovePrevious();
+            this.Slider.Value -= 1;
         }
 
         private void SeriesSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             var series = (string)(sender as ComboBox).SelectedItem;
             this.ImageCollection.SetCurrentSeries(series);
+            this.SetSlider();
         }
 
         private void BrightUp_Click(object sender, RoutedEventArgs e)

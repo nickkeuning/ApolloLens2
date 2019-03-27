@@ -105,7 +105,7 @@ namespace ApolloLensLibrary.Imaging
 
         public bool MoveNext()
         {
-            if (this.CurrentIndex + 1 < this.CurrentSeriesSize())
+            if (this.CurrentIndex + 1 < this.GetCurrentSeriesSize())
             {
                 this.CurrentIndex++;
                 this.NextImage()?.AdjustImage(this.Contrast, this.Brightness);
@@ -129,7 +129,7 @@ namespace ApolloLensLibrary.Imaging
 
         public void SetCurrentSeries(string SeriesName)
         {
-            if (this.Images.ContainsKey(SeriesName))
+            if (this.Images.ContainsKey(SeriesName) && this.CurrentSeries != SeriesName)
             {
                 this.SeriesIndexCache[this.CurrentSeries] = this.CurrentIndex;
                 this.CurrentIndex = this.SeriesIndexCache[SeriesName];
@@ -167,25 +167,19 @@ namespace ApolloLensLibrary.Imaging
             this.Images[seriesName][position] = smartBitmap;
         }
 
-        public int CurrentSeriesSize()
+        public int GetCurrentSeriesSize()
         {
             return this.GetCurrentSeries().Count;
         }
 
-        public void JumptTo(int index)
+        public int GetCurrentIndex()
         {
-            if (index < 0 || index >= this.CurrentSeriesSize())
-                throw new ArgumentException();
-
-            this.CurrentIndex = index;
-            this.SetImageCharacteristics();
-            this.OnImageChanged();
+            return this.CurrentIndex;
         }
     }
 
     public interface IDicomStudy
     {
-        //byte[] GetCurrentImage();
         event EventHandler<SmartBitmap> ImageChanged;
 
         // Series
@@ -193,12 +187,12 @@ namespace ApolloLensLibrary.Imaging
         void CreateSeries(string SeriesName, int SeriesSize);
         void AddImageToSeries(byte[] image, string seriesName, int position, int width, int height);
         void SetCurrentSeries(string SeriesName);
-        int CurrentSeriesSize();
+        int GetCurrentSeriesSize();
+        int GetCurrentIndex();
 
         // Within series
         bool MovePrevious();
         bool MoveNext();
-        void JumptTo(int index);
 
         // Image characteristics
         void IncreaseContrast();

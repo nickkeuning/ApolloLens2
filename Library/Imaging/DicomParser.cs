@@ -18,63 +18,58 @@ using Dicom.Imaging.Render;
 
 namespace ApolloLensLibrary.Imaging
 {
-    public class DicomManager
+    public class DicomParser
     {
-        //public static async Task<IDictionary<string, IEnumerable<Tuple<byte[]>>> GetStudy()
-        //{
-        //    var directory = await GetDicomDirectory();
-        //    var imagePaths = await directory.GetImagePaths();
+        public static async Task<IDicomStudy> GetStudy()
+        {
+            var raw = await GetStudyRaw();
 
-        //    var collection = new List<Tuple<string, int, SoftwareBitmap>>(imagePaths.Count());
-        //    foreach (var path in imagePaths)
-        //    {
-        //        collection.Add(await ProcessImagePath(directory, path));
-        //    }
+            var result = new ImageCollection();
 
-        //    return collection
-        //        .GroupBy(t => t.Item1)
-        //        .ToDictionary(
-        //            grp => grp.Key,
-        //            grp => grp.OrderBy(t => t.Item2).Select(t => t.Item3));
-        //}
+            foreach (var series in raw.Keys)
+            {
+                result.CreateSeries(series, raw[series].Count());
+                foreach (var im in raw[series])
+                {
+                    result.AddImageToSeries(
+                        im.Image, im.Series, im.Position,
+                        im.Width, im.Height);
+                }
+            }
 
-        public static async Task<ImageCollection> GetStudy()
+            return result;
+        }
+
+        public static async Task<IDictionary<string, IEnumerable<ImageTransferObject>>> GetStudyRaw()
         {
             var directory = await GetDicomDirectory();
             var imagePaths = await directory.GetImagePaths();
 
-            var collection = new List<Tuple<string, int, byte[], int, int>>(imagePaths.Count());
+            var collection = new List<ImageTransferObject>(imagePaths.Count());
             foreach (var path in imagePaths)
             {
                 collection.Add(await ProcessImagePath(directory, path));
             }
 
-            var grouped = collection
-                .GroupBy(tuple => tuple.Item1)
+            var res = collection
+                .GroupBy(transfer => transfer.Series)
                 .ToDictionary(
                     grp => grp.Key,
-                    grp => grp.OrderBy(
-                        tuple => tuple.Item2)
-                        .Select((tuple, index) => new
+                    grp =>
+                    {
+                        var ordered = grp
+                            .OrderBy(transfer => transfer.Position);
+
+                        foreach (var it in ordered
+                            .Select((t, i) => new { value = t, idx = i }))
                         {
-                            Image = tuple.Item3,
-                            Position = index,
-                            Width = tuple.Item4,
-                            Height = tuple.Item5
-                        }));
+                            it.value.Position = it.idx; 
+                        }
 
-            var result = new ImageCollection();
+                        return ordered.AsEnumerable();
+                    });
 
-            foreach (var series in grouped.Keys)
-            {
-                result.CreateSeries(series, grouped[series].Count());
-                foreach (var im in grouped[series])
-                {
-                    result.AddImageToSeries(im.Image, series, im.Position, im.Width, im.Height);
-                }
-            }
-
-            return result;
+            return res;            
         }
 
         private static async Task<StorageFolder> GetDicomDirectory()
@@ -86,7 +81,7 @@ namespace ApolloLensLibrary.Imaging
             return await folderPicker.PickSingleFolderAsync();
         }
 
-        private static async Task<Tuple<string, int, byte[], int, int>> ProcessImagePath(StorageFolder directory, string path)
+        private static async Task<ImageTransferObject> ProcessImagePath(StorageFolder directory, string path)
         {
             var file = await directory.GetFileAsync(path);
             var stream = await file.OpenStreamForReadAsync();
@@ -105,17 +100,24 @@ namespace ApolloLensLibrary.Imaging
                 .FirstOrDefault();
 
             var dicomImage = new DicomImage(dicomFile.Dataset);
-            var bitmap = dicomImage.RenderImage().AsWriteableBitmap().PixelBuffer;
-            var result = new byte[bitmap.Length];
-            using (var source = bitmap.AsStream())
+            var pixelBuffer = dicomImage.RenderImage().AsWriteableBitmap().PixelBuffer;
+            var imageBytes = new byte[pixelBuffer.Length];
+            using (var source = pixelBuffer.AsStream())
             {
-                using (var dest = result.AsBuffer().AsStream())
+                using (var dest = imageBytes.AsBuffer().AsStream())
                 {
                     source.CopyTo(dest);
                 }
             }
 
-            return Tuple.Create(series, position, result, dicomImage.Width, dicomImage.Height);
+            return new ImageTransferObject()
+            {
+                Image = imageBytes,
+                Series = series,
+                Position = position,
+                Width = dicomImage.Width,
+                Height = dicomImage.Height
+            };
         }
     }
 
@@ -183,5 +185,12 @@ namespace ApolloLensLibrary.Imaging
         }
     }
 
-
+    public class ImageTransferObject
+    {
+        public byte[] Image { get; set; }
+        public string Series { get; set; }
+        public int Position { get; set; }
+        public int Width { get; set; }
+        public int Height { get; set; }
+    }
 }

@@ -15,10 +15,15 @@ using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Navigation;
 using System.ComponentModel;
 using ApolloLensLibrary.Imaging;
+using ApolloLensLibrary.Utilities;
 using System.Threading.Tasks;
 using Windows.Networking.Sockets;
 using Windows.Networking;
 using Windows.Storage.Streams;
+using Windows.Graphics.Imaging;
+using Windows.Storage;
+using Windows.UI.ViewManagement;
+
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -29,32 +34,27 @@ namespace ScanGallery
     /// </summary>
     public sealed partial class MainPage : Page, INotifyPropertyChanged
     {
-        private DicomManager dicom { get; set; }
         private IDicomStudy ImageCollection { get; set; }
 
-        // Bound to MainPage.xaml
-        public WriteableBitmap Image => this.ImageCollection.GetCurrentImage();
-        public IList<string> Series => this.ImageCollection.GetSeriesNames();
+        public IList<string> SeriesNames => this.ImageCollection?.GetSeriesNames();
+        public SoftwareBitmapSource SoftwareBitmapSource { get; set; }
+
+        private string ServerAddressKey { get; } = "CustomServerAddress";
+        public string ServerAddress { get; set; }
 
         public MainPage()
         {
             this.DataContext = this;
             this.InitializeComponent();
-            this.dicom = new DicomManager();
-            this.ImageCollection = new ImageCollection();
+            this.SoftwareBitmapSource = new SoftwareBitmapSource();
 
-            // Pass property changes in ImageCollection up to MainPage.xaml
-            this.ImageCollection.PropertyChanged += (s, e) =>
+            if (!ApplicationData.Current.LocalSettings.Values.TryGetValue(this.ServerAddressKey, out object value))
             {
-                // Translate ImageCollection method name to local property name
-                var bindings = new Dictionary<string, string>()
-                {
-                    { "GetCurrentImage", "Image" },
-                    { "GetSeriesNames", "Series" }
-                };
-                var name = bindings[e.PropertyName];
-                this.OnPropertyChanged(name);
-            };
+                value = "10.0.0.192";
+                ApplicationData.Current.LocalSettings.Values["CustomServerAddress"] = (string)value;
+            }
+            this.ServerAddress = (string)value;
+            this.OnPropertyChanged(nameof(this.ServerAddress));
         }
 
         private void OnPropertyChanged(string propertyName)
@@ -64,77 +64,85 @@ namespace ScanGallery
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        protected override void OnNavigatedTo(NavigationEventArgs e)
+
+
+        private async void LoadStudy_Click(object sender, RoutedEventArgs e)
         {
-            var load = this.Dispatcher.RunAsync(
-                Windows.UI.Core.CoreDispatcherPriority.Normal, 
-                async () => await this.LoadAsync());
+            this.LoadStudy.ToggleVisibility();
+            this.ImageCollection = await DicomNetworking.GetStudyAsync(this.ServerAddress);
+            this.OnStudyLoaded();
         }
 
-        private async Task LoadAsync()
+        private async void LoadStudyLocal_Click(object sender, RoutedEventArgs e)
         {
-            var client = new StreamSocket();
-            await client.ConnectAsync(new HostName("35.3.90.141"), "9000");
+            this.LoadStudyLocal.ToggleVisibility();
+            this.ImageCollection = await DicomParser.GetStudy();
+            this.OnStudyLoaded();
+        }
 
-            using (var reader = new DataReader(client.InputStream))
-            {
-                await reader.LoadAsync(sizeof(int));
-                var numSeries = reader.ReadInt32();
-                foreach (var _ in Range(numSeries))
-                {
-                    await this.LoadSeries(reader);
-                }
-            }
+        private void OnStudyLoaded()
+        {
+            ApplicationView.GetForCurrentView().SetPreferredMinSize(
+                new Size(width: 1, height: 1));
+
+            this.ImageCollection.ImageChanged += this.ImageCollection_ImageChanged;
+            this.ImageCollection.ImageChanged += this.ImageCollection_ImageChangedResize;
+
+            this.LoadingScreen.ToggleVisibility();
+            this.RunningScreen.ToggleVisibility();
+
+            this.OnPropertyChanged(nameof(this.SeriesNames));
             this.SeriesSelect.SelectedIndex = 0;
+            this.SetSlider();
         }
 
-        private async Task LoadSeries(DataReader reader)
+        private void ImageCollection_ImageChangedResize(object sender, SmartBitmap smartBm)
         {
-            await reader.LoadAsync(sizeof(int));
-            var nameLength = reader.ReadUInt32();
+            var res = ApplicationView.GetForCurrentView().TryResizeView(
+                new Size(width: smartBm.Width, height: smartBm.Height));
+            this.ImageCollection.ImageChanged -= this.ImageCollection_ImageChangedResize;
+        }
 
-            await reader.LoadAsync(nameLength);
-            var seriesName = reader.ReadString(nameLength);
-
-            await reader.LoadAsync(sizeof(int));
-            var numImages = reader.ReadInt32();
-
-            this.ImageCollection.CreateSeries(seriesName, numImages);
-            foreach (var position in Range(numImages))
+        private async void ImageCollection_ImageChanged(object sender, SmartBitmap smartBm)
+        {
+            await this.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
             {
-                await this.LoadImage(reader, seriesName, position);
-            }
+                var bm = SoftwareBitmap.CreateCopyFromBuffer(
+                    smartBm.GetImage().AsBuffer(),
+                    BitmapPixelFormat.Bgra8,
+                    smartBm.Width,
+                    smartBm.Height,
+                    BitmapAlphaMode.Premultiplied);
+
+                this.SoftwareBitmapSource = new SoftwareBitmapSource();
+                await this.SoftwareBitmapSource.SetBitmapAsync(bm);
+                this.OnPropertyChanged(nameof(this.SoftwareBitmapSource));
+            });
         }
 
-        private async Task LoadImage(DataReader reader, string seriesName, int position)
+        private void SetSlider()
         {
-            await reader.LoadAsync(sizeof(int) * 2 + sizeof(uint));
-            var width = reader.ReadInt32();
-            var height = reader.ReadInt32();
-            var bufferLength = reader.ReadUInt32();
-
-            await reader.LoadAsync(bufferLength);
-            var buffer = reader.ReadBuffer(bufferLength);
-
-            var bitmap = new WriteableBitmap(width, height);
-            using (var source = buffer.AsStream())
-            {
-                using (var destination = bitmap.PixelBuffer.AsStream())
-                {
-                    await source.CopyToAsync(destination);
-                }
-            }
-            this.ImageCollection.AddImageToSeries(bitmap, seriesName, position);
+            this.Slider.Minimum = 0;
+            this.Slider.Maximum = this.ImageCollection.GetCurrentSeriesSize();
+            this.Slider.Value = this.ImageCollection.GetCurrentIndex();
         }
 
-        private IEnumerable<int> Range(int count)
+        private void SeriesSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            return Enumerable.Range(0, count);
+            this.ImageCollection.ImageChanged += this.ImageCollection_ImageChangedResize;
+            var series = (string)(sender as ComboBox).SelectedItem;
+            this.ImageCollection.SetCurrentSeries(series);
+            this.SetSlider();
         }
 
-        private void BrightnessUp_Click(object sender, RoutedEventArgs e)
+        private void BrightUp_Click(object sender, RoutedEventArgs e)
         {
             this.ImageCollection.IncreaseBrightness();
+        }
+
+        private void BrightDown_Click(object sender, RoutedEventArgs e)
+        {
+            this.ImageCollection.DecreaseBrightness();
         }
 
         private void ContrastUp_Click(object sender, RoutedEventArgs e)
@@ -152,25 +160,33 @@ namespace ScanGallery
             this.ImageCollection.Reset();
         }
 
-        private void BrightnessDown_Click(object sender, RoutedEventArgs e)
+        private void Next_Click(object sender, RoutedEventArgs e)
         {
-            this.ImageCollection.DecreaseBrightness();
+            this.Slider.Value += 1;
         }
 
         private void Previous_Click(object sender, RoutedEventArgs e)
         {
-            this.ImageCollection.MovePrevious();
+            this.Slider.Value -= 1;
         }
 
-        private void Next_Click(object sender, RoutedEventArgs e)
+        private void Slider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
         {
-            this.ImageCollection.MoveNext();
+            var action = e.NewValue > e.OldValue ?
+                new Action(this.ImageCollection.MoveNext) :
+                new Action(this.ImageCollection.MovePrevious);
+
+            var delta = (int)Math.Abs(e.NewValue - e.OldValue);
+            foreach (var i in Util.Range(delta))
+            {
+                action();
+            }
         }
 
-        private void SeriesSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void ServerAddressBox_SelectionChanged(object sender, RoutedEventArgs e)
         {
-            var seriesName = (string)this.SeriesSelect.SelectedItem;
-            this.ImageCollection.SetCurrentSeries(seriesName);
+            var textBox = (TextBox)sender;
+            ApplicationData.Current.LocalSettings.Values[this.ServerAddressKey] = textBox.Text;
         }
     }
 }

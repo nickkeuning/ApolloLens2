@@ -73,8 +73,11 @@ namespace ApolloLensLibrary.Imaging
         private void SetImageCharacteristics()
         {
             this.CurrentImage().AdjustImage(this.Contrast, this.Brightness);
-            this.NextImage()?.AdjustImage(this.Contrast, this.Brightness);
-            this.PreviousImage()?.AdjustImage(this.Contrast, this.Brightness);
+            var neighbors = this.PreviousImages().Concat(this.NextImages());
+            foreach (var image in neighbors)
+            {
+                image?.AdjustImage(this.Contrast, this.Brightness);
+            }
         }
 
         private IList<SmartBitmap> GetCurrentSeries()
@@ -88,14 +91,16 @@ namespace ApolloLensLibrary.Imaging
             return this.GetCurrentSeries()?.ElementAtOrDefault(this.CurrentIndex);
         }
 
-        private SmartBitmap NextImage()
+        private IEnumerable<SmartBitmap> NextImages()
         {
-            return this.GetCurrentSeries()?.ElementAtOrDefault(this.CurrentIndex + 1);
+            yield return this.GetCurrentSeries()?.ElementAtOrDefault(this.CurrentIndex + 1);
+            yield return this.GetCurrentSeries()?.ElementAtOrDefault(this.CurrentIndex + 2);
         }
 
-        private SmartBitmap PreviousImage()
+        private IEnumerable<SmartBitmap> PreviousImages()
         {
-            return this.GetCurrentSeries()?.ElementAtOrDefault(this.CurrentIndex - 1);
+            yield return this.GetCurrentSeries()?.ElementAtOrDefault(this.CurrentIndex - 1);
+            yield return this.GetCurrentSeries()?.ElementAtOrDefault(this.CurrentIndex - 2);
         }
 
         public IList<string> GetSeriesNames()
@@ -103,28 +108,30 @@ namespace ApolloLensLibrary.Imaging
             return this.Images.Keys.ToList();
         }
 
-        public bool MoveNext()
+        public void MoveNext()
         {
             if (this.CurrentIndex + 1 < this.GetCurrentSeriesSize())
             {
                 this.CurrentIndex++;
-                this.NextImage()?.AdjustImage(this.Contrast, this.Brightness);
+                foreach (var image in this.NextImages())
+                {
+                    image?.AdjustImage(this.Contrast, this.Brightness);
+                }
                 this.OnImageChanged();
-                return true;
             }
-            return false;
         }
 
-        public bool MovePrevious()
+        public void MovePrevious()
         {
             if (this.CurrentIndex > 0)
             {
                 this.CurrentIndex--;
-                this.PreviousImage()?.AdjustImage(this.Contrast, this.Brightness);
+                foreach (var image in this.PreviousImages())
+                {
+                    image?.AdjustImage(this.Contrast, this.Brightness);
+                }
                 this.OnImageChanged();
-                return true;
             }
-            return false;
         }
 
         public void SetCurrentSeries(string SeriesName)
@@ -191,8 +198,8 @@ namespace ApolloLensLibrary.Imaging
         int GetCurrentIndex();
 
         // Within series
-        bool MovePrevious();
-        bool MoveNext();
+        void MovePrevious();
+        void MoveNext();
 
         // Image characteristics
         void IncreaseContrast();

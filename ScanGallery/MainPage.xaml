@@ -6,106 +6,174 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+    Height="1000"
+    Width="1000"
+    x:Name="Page">
+    <Page.Resources>
+        <SolidColorBrush
+            x:Key="TextColor"
+            Color="#FF00D1FF" />
+        <SolidColorBrush
+            x:Key="SelectedColor"
+            Color="#FF3300" />
+        <Visibility
+            x:Key="StartupVis">Visible</Visibility>
+        <Visibility
+            x:Key="RunningVis">Collapsed</Visibility>
+    </Page.Resources>
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition
-                Width="*" />
-            <ColumnDefinition
-                Width="*" />
-            <ColumnDefinition
-                Width="auto" />
-        </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-            <RowDefinition
-                Height="*" />
-            <RowDefinition
-                Height="auto" />
-            <RowDefinition
-                Height="auto" />
-        </Grid.RowDefinitions>
-        <Image
-            Grid.Column="0"
-            Grid.ColumnSpan="2"
-            Grid.Row="0"
-            Margin="24"
-            x:Name="ImageDisplay" 
-            Source="{Binding Image, Mode=OneWay}"/>
-        <StackPanel
-            Grid.Column="2"
-            Grid.Row="0"
-            Visibility="Visible">
-            <Button
-                Grid.Column="1"
-                Grid.Row="1"
-                x:Name="BrightnessUp"
-                Margin="12"
-                HorizontalAlignment="Stretch"
-                Content="Increase Brightness"
-                Click="BrightnessUp_Click" />
-            <Button
-                Grid.Column="2"
-                Grid.Row="1"
-                x:Name="ContrastUp"
-                Margin="12"
-                HorizontalAlignment="Stretch"
-                Content="Increase Contrast"
-                Click="ContrastUp_Click" />
-            <Button
-                Grid.Column="1"
-                Grid.Row="2"
-                x:Name="BrightnessDown"
-                Margin="12"
-                HorizontalAlignment="Stretch"
-                Content="Decrease Brightness"
-                Click="BrightnessDown_Click" />
-            <Button
-                Grid.Column="2"
-                Grid.Row="2"
-                x:Name="ContrastDown"
-                Margin="12"
-                HorizontalAlignment="Stretch"
-                Content="Decrease Contrast"
-                Click="ContrastDown_Click" />
-            <Button
-                Grid.Column="1"
-                Grid.ColumnSpan="2"
-                Grid.Row="3"
-                HorizontalAlignment="Stretch"
-                x:Name="Reset"
-                Margin="12"
-                Content="Reset"
-                Click="Reset_Click" />
-        </StackPanel>
+        <Grid
+            x:Name="LoadingScreen"
+            Visibility="{StaticResource StartupVis}">
+            <StackPanel
+                Orientation="Horizontal"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Center">
+                <TextBlock
+                    VerticalAlignment="Center"
+                    Text="Server Address: " 
+                    Margin="12"/>
+                <TextBox
+                    Text="{Binding ServerAddress, Mode=OneWay}"
+                    VerticalAlignment="Center"
+                    Margin="12"
+                    x:Name="ServerAddressBox"
+                    SelectionChanged="ServerAddressBox_SelectionChanged"
+                    Width="120"/>
+                <Button
+                    x:Name="LoadStudy"
+                    Click="LoadStudy_Click" 
+                    VerticalAlignment="Center"
+                    Content="Load Study From Server"
+                    Margin="12"/>
+                <Button 
+                    x:Name="LoadStudyLocal"
+                    Click="LoadStudyLocal_Click"
+                    VerticalAlignment="Center"
+                    Content="Load Study from Local"
+                    Margin="12"/>
+            </StackPanel>
 
-        <RepeatButton
-            Grid.Column="0"
-            Grid.Row="1"
-            Delay="500"
-            Interval="100"
-            HorizontalAlignment="Stretch"
-            x:Name="Previous"
-            Margin="12"
-            Content="Previous Image"
-            Click="Previous_Click" />
-        <RepeatButton
-            Grid.Column="1"
-            Grid.Row="1"
-            Delay="500"
-            Interval="100"
-            HorizontalAlignment="Stretch"
-            x:Name="Next"
-            Margin="12"
-            Content="Next Image"
-            Click="Next_Click" />
-        <ComboBox 
-            x:Name="SeriesSelect"
-            Grid.Column="0"
-            Grid.ColumnSpan="2"
-            Grid.Row="2" 
-            HorizontalAlignment="Stretch"
-            Margin="12"
-            ItemsSource="{Binding Series, Mode=OneWay}"
-            SelectionChanged="SeriesSelect_SelectionChanged"/>
+            
+        </Grid>
+        <Grid
+            x:Name="RunningScreen"
+            Visibility="{StaticResource RunningVis}">
+            <Button
+                VerticalAlignment="Top"
+                HorizontalAlignment="Left"
+                Margin="24"
+                Content="Settings"
+                Foreground="{StaticResource TextColor}">
+                <Button.Flyout>
+                    <Flyout>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+                            <Button
+                                x:Name="BrightUp"
+                                Click="BrightUp_Click"
+                                Content="Brightness Up"
+                                Grid.Column="0"
+                                Grid.Row="0"
+                                Margin="0,0,6,6"
+                                HorizontalAlignment="Stretch"
+                                Foreground="{StaticResource TextColor}" />
+                            <Button
+                                x:Name="BrightDown"
+                                Click="BrightDown_Click"
+                                Content="Brightness Down"
+                                Grid.Column="0"
+                                Grid.Row="1"
+                                Margin="0,6,6,0"
+                                HorizontalAlignment="Stretch"
+                                Foreground="{StaticResource TextColor}" />
+                            <Button
+                                x:Name="ContrastUp"
+                                Click="ContrastUp_Click"
+                                Content="Contrast Up"
+                                Grid.Column="1"
+                                Grid.Row="0"
+                                Margin="6,0,0,6"
+                                HorizontalAlignment="Stretch"
+                                Foreground="{StaticResource TextColor}" />
+                            <Button
+                                x:Name="ContrastDown"
+                                Click="ContrastDown_Click"
+                                Content="Contrast Down"
+                                Grid.Column="1"
+                                Grid.Row="1"
+                                Margin="6,6,0,0"
+                                HorizontalAlignment="Stretch"
+                                Foreground="{StaticResource TextColor}" />
+                            <Button
+                                x:Name="Reset"
+                                Click="Reset_Click"
+                                Content="Reset"
+                                Grid.Row="2"
+                                Grid.ColumnSpan="2"
+                                HorizontalAlignment="Stretch"
+                                Margin="0,12,0,0"
+                                Foreground="{StaticResource TextColor}" />
+                        </Grid>
+                    </Flyout>
+                </Button.Flyout>
+            </Button>
+            <Image
+                Canvas.ZIndex="-2"
+                Source="{Binding SoftwareBitmapSource, Mode=OneWay}"
+                VerticalAlignment="Stretch"
+                HorizontalAlignment="Stretch" />
+            <RepeatButton
+                Delay="500"
+                Interval="100"
+                x:Name="Next"
+                Click="Next_Click"
+                Padding="0,0,0,12"
+                Opacity="0.5"
+                FontSize="72"
+                Margin="24"
+                HorizontalAlignment="Right"
+                Content="&gt;"
+                Foreground="{StaticResource TextColor}" />
+            <RepeatButton
+                Delay="500"
+                Interval="100"
+                x:Name="Previous"
+                Click="Previous_Click"
+                Padding="0,0,0,12"
+                Opacity="0.5"
+                FontSize="72"
+                Margin="24"
+                HorizontalAlignment="Left"
+                Content="&lt;"
+                Foreground="{StaticResource TextColor}" />
+            <ComboBox
+                Margin="24"
+                SelectionChanged="SeriesSelect_SelectionChanged"
+                ItemsSource="{Binding SeriesNames}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                FontSize="24"
+                x:Name="SeriesSelect" />
+            <Slider
+                x:Name="Slider"
+                Minimum="0"
+                Maximum="10"
+                StepFrequency="1"
+                Value="{Binding Index}"
+                ValueChanged="Slider_ValueChanged"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Bottom"
+                Margin="96,0,96,0" />
+        </Grid>
     </Grid>
 </Page>

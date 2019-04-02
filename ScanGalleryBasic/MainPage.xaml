@@ -9,12 +9,88 @@
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
     Height="auto"
     Width="auto">
+    <Page.Resources>
+        <SolidColorBrush
+            x:Key="TextColor"
+            Color="#FF00D1FF" />
+        <SolidColorBrush
+            x:Key="SelectedColor"
+            Color="#FF3300" />
+    </Page.Resources>
     <Grid>
+        <Button
+            VerticalAlignment="Top"
+            HorizontalAlignment="Left"
+            Margin="24"
+            Content="Settings"
+            Foreground="{StaticResource TextColor}"
+            >
+            <Button.Flyout>
+                <Flyout>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition />
+                            <RowDefinition />
+                            <RowDefinition />
+                        </Grid.RowDefinitions>
+                        <Button
+                            x:Name="BrightUp"
+                            Click="BrightUp_Click"
+                            Content="Brightness Up"
+                            Grid.Column="0"
+                            Grid.Row="0"
+                            Margin="0,0,6,6"
+                            HorizontalAlignment="Stretch"
+                            Foreground="{StaticResource TextColor}" />
+                        <Button
+                            x:Name="BrightDown"
+                            Click="BrightDown_Click"
+                            Content="Brightness Down"
+                            Grid.Column="0"
+                            Grid.Row="1"
+                            Margin="0,6,6,0"
+                            HorizontalAlignment="Stretch"
+                            Foreground="{StaticResource TextColor}" />
+                        <Button
+                            x:Name="ContrastUp"
+                            Click="ContrastUp_Click"
+                            Content="Contrast Up"
+                            Grid.Column="1"
+                            Grid.Row="0"
+                            Margin="6,0,0,6"
+                            HorizontalAlignment="Stretch"
+                            Foreground="{StaticResource TextColor}" />
+                        <Button
+                            x:Name="ContrastDown"
+                            Click="ContrastDown_Click"
+                            Content="Contrast Down"
+                            Grid.Column="1"
+                            Grid.Row="1"
+                            Margin="6,6,0,0"
+                            HorizontalAlignment="Stretch"
+                            Foreground="{StaticResource TextColor}" />
+                        <Button 
+                            x:Name="Reset"
+                            Click="Reset_Click"
+                            Content="Reset"
+                            Grid.Row="2"
+                            Grid.ColumnSpan="2"
+                            HorizontalAlignment="Stretch"
+                            Margin="0,12,0,0"
+                            Foreground="{StaticResource TextColor}"/>
+                    </Grid>
+                </Flyout>
+            </Button.Flyout>
+        </Button>
         <Image
             Source="{Binding SoftwareBitmapSource, Mode=OneWay}"
             VerticalAlignment="Stretch"
             HorizontalAlignment="Stretch" />
-        <RepeatButton            
+        <RepeatButton
             Canvas.ZIndex="1"
             Delay="500"
             Interval="100"
@@ -26,9 +102,9 @@
             Margin="24"
             HorizontalAlignment="Right"
             Content="&gt;"
-            Foreground="#FF00D1FF" />
+            Foreground="{StaticResource TextColor}"/>
         <RepeatButton
-            Canvas.ZIndex="1"            
+            Canvas.ZIndex="1"
             Delay="500"
             Interval="100"
             x:Name="Previous"
@@ -39,37 +115,7 @@
             Margin="24"
             HorizontalAlignment="Left"
             Content="&lt;"
-            Foreground="#FF00D1FF"/>
-        <Button
-            x:Name="BrightUp"
-            Click="BrightUp_Click" 
-            Content="Brightness Up"
-            VerticalAlignment="Top"
-            Margin="24"
-            Foreground="#FF00D1FF"/>
-        <Button
-            x:Name="BrightDown"
-            Click="BrightDown_Click"
-            Content="Brightness Down"
-            VerticalAlignment="Bottom"
-            Margin="24"
-            Foreground="#FF00D1FF" />
-        <Button
-            x:Name="ContrastUp"
-            Click="ContrastUp_Click"
-            Content="Contrast Up"
-            VerticalAlignment="Top"
-            HorizontalAlignment="Right"
-            Margin="24"
-            Foreground="#FF00D1FF" />
-        <Button
-            x:Name="ContrastDown"
-            Click="ContrastDown_Click"
-            Content="Contrast Down"
-            VerticalAlignment="Bottom"
-            HorizontalAlignment="Right"
-            Margin="24"
-            Foreground="#FF00D1FF" />
+            Foreground="{StaticResource TextColor}" />
         <ComboBox
             Margin="24"
             SelectionChanged="SeriesSelect_SelectionChanged"
@@ -83,10 +129,10 @@
             Minimum="0"
             Maximum="10"
             StepFrequency="1"
-            Value="{Binding Index}"            
-            ValueChanged="Slider_ValueChanged"            
+            Value="{Binding Index}"
+            ValueChanged="Slider_ValueChanged"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Bottom"
-            Margin="96,0,96,0"/>
+            Margin="96,0,96,0" />
     </Grid>
 </Page>

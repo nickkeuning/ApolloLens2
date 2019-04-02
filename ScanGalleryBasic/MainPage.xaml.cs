@@ -13,6 +13,7 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 using ApolloLensLibrary.Imaging;
+using ApolloLensLibrary.Utilities;
 using System.ComponentModel;
 using Windows.UI.Xaml.Media.Imaging;
 using Windows.Storage.Streams;
@@ -50,7 +51,7 @@ namespace ScanGalleryBasic
 
         protected async override void OnNavigatedTo(NavigationEventArgs e)
         {
-            this.ImageCollection = await DicomManager.GetStudy();
+            this.ImageCollection = await DicomParser.GetStudy();
             this.ImageCollection.ImageChanged += async (s, smartBm) =>
             {
                 await this.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
@@ -80,16 +81,6 @@ namespace ScanGalleryBasic
             this.Slider.Value = this.ImageCollection.GetCurrentIndex();
         }
 
-        private void Next_Click(object sender, RoutedEventArgs e)
-        {
-            this.Slider.Value += 1;
-        }
-
-        private void Previous_Click(object sender, RoutedEventArgs e)
-        {
-            this.Slider.Value -= 1;
-        }
-
         private void SeriesSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             var series = (string)(sender as ComboBox).SelectedItem;
@@ -117,15 +108,31 @@ namespace ScanGalleryBasic
             this.ImageCollection.DecreaseContrast();
         }
 
+        private void Reset_Click(object sender, RoutedEventArgs e)
+        {
+            this.ImageCollection.Reset();
+        }
+
+        private void Next_Click(object sender, RoutedEventArgs e)
+        {
+            this.Slider.Value += 1;
+        }
+
+        private void Previous_Click(object sender, RoutedEventArgs e)
+        {
+            this.Slider.Value -= 1;
+        }
+
         private void Slider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
         {
-            if (e.NewValue > e.OldValue)
+            var op = e.NewValue > e.OldValue ?
+                new Action(this.ImageCollection.MoveNext) :
+                new Action(this.ImageCollection.MovePrevious);
+
+            var delta = (int)Math.Abs(e.NewValue - e.OldValue);
+            foreach (var i in Enumerable.Range(0, delta))
             {
-                this.ImageCollection.MoveNext();
-            }
-            else
-            {
-                this.ImageCollection.MovePrevious();
+                op();
             }
         }
     }

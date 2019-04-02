@@ -122,16 +122,19 @@
   <ItemGroup>
     <Compile Include="Conducting\Conductor.cs" />
     <Compile Include="Conducting\Wrapper.cs" />
-    <Compile Include="Imaging\DicomManager.cs" />
+    <Compile Include="Imaging\DicomNetworking.cs" />
+    <Compile Include="Imaging\DicomParser.cs" />
     <Compile Include="Imaging\ImageCharacteristics.cs" />
     <Compile Include="Imaging\ImageCollection.cs" />
     <Compile Include="Imaging\SmartBitmap.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Signalling\MessageProtocol.cs" />
     <Compile Include="Signalling\Signaller.cs" />
+    <Compile Include="Utilities\EnumerableExtensions.cs" />
     <Compile Include="Utilities\Logger.cs" />
     <Compile Include="Utilities\ServerConfig.cs" />
     <Compile Include="Utilities\TaskExtensions.cs" />
+    <Compile Include="Utilities\Util.cs" />
     <Compile Include="Utilities\VisibilityExtensions.cs" />
     <EmbeddedResource Include="Properties\Library.rd.xml" />
   </ItemGroup>

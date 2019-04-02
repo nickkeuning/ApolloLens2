@@ -7,14 +7,19 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-
     <Grid>
+        <TextBlock
+            x:Name="LoadingBlock"
+            Text="Loading Images..."
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            FontSize="72" />
         <TextBlock
             x:Name="ReadyBlock"
             Text="Ready"
             HorizontalAlignment="Center"
             VerticalAlignment="Center"
-            FontSize="72" 
-            Visibility="Collapsed"/>
+            FontSize="72"
+            Visibility="Collapsed" />
     </Grid>
 </Page>

@@ -14,5 +14,10 @@ namespace ApolloLensLibrary.Utilities
         {
             WriteMessage?.Invoke(message);
         }
+
+        public static void LogLine(string message)
+        {
+            WriteMessage?.Invoke(message + Environment.NewLine);
+        }
     }
 }

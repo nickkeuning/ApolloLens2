@@ -7,8 +7,6 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
-    Height="1000"
-    Width="1000"
     x:Name="Page">
     <Page.Resources>
         <SolidColorBrush
@@ -32,30 +30,28 @@
                 HorizontalAlignment="Center">
                 <TextBlock
                     VerticalAlignment="Center"
-                    Text="Server Address: " 
-                    Margin="12"/>
+                    Text="Server Address: "
+                    Margin="12" />
                 <TextBox
                     Text="{Binding ServerAddress, Mode=OneWay}"
                     VerticalAlignment="Center"
                     Margin="12"
                     x:Name="ServerAddressBox"
                     SelectionChanged="ServerAddressBox_SelectionChanged"
-                    Width="120"/>
+                    Width="120" />
                 <Button
                     x:Name="LoadStudy"
-                    Click="LoadStudy_Click" 
+                    Click="LoadStudy_Click"
                     VerticalAlignment="Center"
                     Content="Load Study From Server"
-                    Margin="12"/>
-                <Button 
+                    Margin="12" />
+                <Button
                     x:Name="LoadStudyLocal"
                     Click="LoadStudyLocal_Click"
                     VerticalAlignment="Center"
                     Content="Load Study from Local"
-                    Margin="12"/>
+                    Margin="12" />
             </StackPanel>
-
-            
         </Grid>
         <Grid
             x:Name="RunningScreen"
@@ -173,7 +169,7 @@
                 ValueChanged="Slider_ValueChanged"
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Bottom"
-                Margin="96,0,96,0" />
+                Margin="96,0,96,24" />
         </Grid>
     </Grid>
 </Page>

@@ -72,12 +72,11 @@ namespace ApolloLensLibrary.Imaging
 
         private void SetImageCharacteristics()
         {
-            this.CurrentImage().AdjustImage(this.Contrast, this.Brightness);
-            var neighbors = this.PreviousImages().Concat(this.NextImages());
-            foreach (var image in neighbors)
-            {
-                image?.AdjustImage(this.Contrast, this.Brightness);
-            }
+            this.CurrentImage()?.AdjustImage(this.Contrast, this.Brightness);
+            this.PreviousImage(2)?.AdjustImage(this.Contrast, this.Brightness);
+            this.PreviousImage(1)?.AdjustImage(this.Contrast, this.Brightness);
+            this.NextImage(1)?.AdjustImage(this.Contrast, this.Brightness);
+            this.NextImage(2)?.AdjustImage(this.Contrast, this.Brightness);
         }
 
         private IList<SmartBitmap> GetCurrentSeries()
@@ -91,16 +90,14 @@ namespace ApolloLensLibrary.Imaging
             return this.GetCurrentSeries()?.ElementAtOrDefault(this.CurrentIndex);
         }
 
-        private IEnumerable<SmartBitmap> NextImages()
+        private SmartBitmap NextImage(int offset)
         {
-            yield return this.GetCurrentSeries()?.ElementAtOrDefault(this.CurrentIndex + 1);
-            yield return this.GetCurrentSeries()?.ElementAtOrDefault(this.CurrentIndex + 2);
+            return this.GetCurrentSeries()?.ElementAtOrDefault(this.CurrentIndex + offset);
         }
 
-        private IEnumerable<SmartBitmap> PreviousImages()
+        private SmartBitmap PreviousImage(int offset)
         {
-            yield return this.GetCurrentSeries()?.ElementAtOrDefault(this.CurrentIndex - 1);
-            yield return this.GetCurrentSeries()?.ElementAtOrDefault(this.CurrentIndex - 2);
+            return this.GetCurrentSeries()?.ElementAtOrDefault(this.CurrentIndex - offset);
         }
 
         public IList<string> GetSeriesNames()
@@ -108,30 +105,26 @@ namespace ApolloLensLibrary.Imaging
             return this.Images.Keys.ToList();
         }
 
-        public void MoveNext()
+        public bool MoveNext()
         {
-            if (this.CurrentIndex + 1 < this.GetCurrentSeriesSize())
-            {
-                this.CurrentIndex++;
-                foreach (var image in this.NextImages())
-                {
-                    image?.AdjustImage(this.Contrast, this.Brightness);
-                }
-                this.OnImageChanged();
-            }
+            if (this.CurrentIndex + 1 == this.GetCurrentSeriesSize())
+                return false;
+
+            this.CurrentIndex++;
+            this.OnImageChanged();
+            this.NextImage(2)?.AdjustImage(this.Contrast, this.Brightness);
+            return true;
         }
 
-        public void MovePrevious()
+        public bool MovePrevious()
         {
-            if (this.CurrentIndex > 0)
-            {
-                this.CurrentIndex--;
-                foreach (var image in this.PreviousImages())
-                {
-                    image?.AdjustImage(this.Contrast, this.Brightness);
-                }
-                this.OnImageChanged();
-            }
+            if (this.CurrentIndex == 0)
+                return false;
+
+            this.CurrentIndex--;
+            this.OnImageChanged();
+            this.PreviousImage(2)?.AdjustImage(this.Contrast, this.Brightness);
+            return true;
         }
 
         public void SetCurrentSeries(string SeriesName)
@@ -189,17 +182,21 @@ namespace ApolloLensLibrary.Imaging
     {
         event EventHandler<SmartBitmap> ImageChanged;
 
-        // Series
-        IList<string> GetSeriesNames();
+        // Building
         void CreateSeries(string SeriesName, int SeriesSize);
         void AddImageToSeries(byte[] image, string seriesName, int position, int width, int height);
-        void SetCurrentSeries(string SeriesName);
-        int GetCurrentSeriesSize();
+
+        // Series info
+        IList<string> GetSeriesNames();
         int GetCurrentIndex();
+        int GetCurrentSeriesSize();
+
+        // Change series
+        void SetCurrentSeries(string SeriesName);
 
         // Within series
-        void MovePrevious();
-        void MoveNext();
+        bool MovePrevious();
+        bool MoveNext();
 
         // Image characteristics
         void IncreaseContrast();

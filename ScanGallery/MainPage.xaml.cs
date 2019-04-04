@@ -28,6 +28,7 @@ using Windows.Media.Capture;
 using Windows.ApplicationModel.Resources.Core;
 using Windows.UI.Popups;
 using Windows.System.Threading;
+using Windows.UI.Core;
 
 
 
@@ -161,7 +162,7 @@ namespace ScanGallery
         {
             this.ImageCollection.ImageChanged += async (s, args) =>
             {
-                await this.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
+                await this.RunOnUi(async () =>
                 {
                     this.index = args.Index;
                     this.OnPropertyChanged(nameof(this.Index));
@@ -257,21 +258,15 @@ namespace ScanGallery
         {
             try
             {
-                // Request access to the microphone only, to limit the number of capabilities we need
-                // to request in the package manifest.
-                MediaCaptureInitializationSettings settings = new MediaCaptureInitializationSettings();
+                var settings = new MediaCaptureInitializationSettings();
                 settings.StreamingCaptureMode = StreamingCaptureMode.Audio;
                 settings.MediaCategory = MediaCategory.Speech;
-                MediaCapture capture = new MediaCapture();
+                var capture = new MediaCapture();
 
                 await capture.InitializeAsync(settings);
             }
-
             catch (UnauthorizedAccessException)
             {
-                // The user has turned off access to the microphone. If this occurs, we should show an error, or disable
-                // functionality within the app to ensure that further exceptions aren't generated when 
-                // recognition is attempted.
                 return false;
             }
             return true;
@@ -285,10 +280,6 @@ namespace ScanGallery
 
             this.SpeechRecognizer = new SpeechRecognizer();
 
-            //this.SpeechRecognizer.StateChanged += this.SpeechRecognizer_StateChanged;
-            this.SpeechRecognizer.ContinuousRecognitionSession.ResultGenerated += this.ContinuousRecognitionSession_ResultGenerated;
-            this.SpeechRecognizer.ContinuousRecognitionSession.Completed += this.ContinuousRecognitionSession_Completed;
-
             this.SpeechRecognizer.Constraints.Add(
                 new SpeechRecognitionListConstraint(
                     new List<string>()
@@ -297,43 +288,46 @@ namespace ScanGallery
                     }));
 
             await this.SpeechRecognizer.CompileConstraintsAsync();
+            await this.InitializeContinousRecognition();
+        }
+
+        private async Task InitializeContinousRecognition()
+        {
+            var continuous = this.SpeechRecognizer.ContinuousRecognitionSession;
+
+            continuous.Completed += async (s, a) =>
+            {
+                await this.RunOnUi(async () =>
+                {
+                    var message = new MessageDialog("Speech Recognition Closed.");
+                    await message.ShowAsync();
+                });
+            };
+
+            continuous.ResultGenerated += async (s, args) =>
+            {
+                var command = args.Result.Text;
+                switch (command)
+                {
+                    case "next":
+                        await this.RunOnUi(() => this.ImageCollection.MoveNext());
+                        break;
+                    case "previous":
+                        await this.RunOnUi(() => this.ImageCollection.MovePrevious());
+                        break;
+                    case "scroll left":
+                        await this.RunOnUi(() => this.StartScroll(true));
+                        break;
+                    case "scroll right":
+                        await this.RunOnUi(() => this.StartScroll(false));
+                        break;
+                    case "stop scrolling":
+                        await this.RunOnUi(() => this.StopScroll());
+                        break;
+                }
+            };
+
             await this.SpeechRecognizer.ContinuousRecognitionSession.StartAsync();
-        }
-
-        private async void ContinuousRecognitionSession_Completed(
-            SpeechContinuousRecognitionSession sender,
-            SpeechContinuousRecognitionCompletedEventArgs args)
-        {
-            await this.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
-            {
-                var message = new MessageDialog("Speech Recognition Closed.");
-                await message.ShowAsync();
-            });
-        }
-
-        private async void ContinuousRecognitionSession_ResultGenerated(
-            SpeechContinuousRecognitionSession sender,
-            SpeechContinuousRecognitionResultGeneratedEventArgs args)
-        {
-            var command = args.Result.Text;
-            switch (command)
-            {
-                case "next":
-                    await this.RunOnUi(() => this.ImageCollection.MoveNext());
-                    break;
-                case "previous":
-                    await this.RunOnUi(() => this.ImageCollection.MovePrevious());
-                    break;
-                case "scroll left":
-                    await this.RunOnUi(() => this.StartScroll(true));
-                    break;
-                case "scroll right":
-                    await this.RunOnUi(() => this.StartScroll(false));
-                    break;
-                case "stop scrolling":
-                    await this.RunOnUi(this.StopScroll);
-                    break;
-            }
         }
 
 
@@ -367,13 +361,17 @@ namespace ScanGallery
             this.Scroll = null;
         }
 
+        #endregion
+
+        #region Utility
+
         private async Task RunOnUi(Action action)
         {
             await this.Dispatcher.RunAsync(
-                Windows.UI.Core.CoreDispatcherPriority.Normal,
-                () => action());
+                CoreDispatcherPriority.Normal, () => action());
         }
-    }
 
-    #endregion
+        #endregion
+
+    }
 }

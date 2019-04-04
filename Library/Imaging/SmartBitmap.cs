@@ -1,11 +1,9 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.UI.Xaml.Media.Imaging;
-using System;
 using System.Threading.Tasks;
 using Windows.Storage.Streams;
-using Windows.Graphics.Imaging;
 
 
 namespace ApolloLensLibrary.Imaging
@@ -108,37 +106,6 @@ namespace ApolloLensLibrary.Imaging
                 }
             }
         }
-
-        /// <summary>
-        /// Builds a new WriteableBitmap from the image parameter based on the
-        /// brightness and contrast parameters.
-        /// </summary>
-        /// <param name="image"></param>
-        /// <param name="brightness"></param>
-        /// <param name="contrast"></param>
-        /// <returns></returns>
-        private static WriteableBitmap CalculateImage(
-            WriteableBitmap image,
-            double brightness,
-            double contrast,
-            bool BlackAndWhite = true)
-        {
-            var destImage = new WriteableBitmap(image.PixelWidth, image.PixelHeight);
-            var pixel = new byte[4];
-            using (Stream source = image.PixelBuffer.AsStream())
-            {
-                using (Stream dest = destImage.PixelBuffer.AsStream())
-                {
-                    while (source.Read(pixel, 0, 4) > 0)
-                    {
-                        pixel = CalculatePixel(pixel, brightness, contrast, BlackAndWhite);
-                        dest.Write(pixel, 0, 4);
-                    }
-                }
-            }
-            return destImage;
-        }
-
 
         /// <summary>
         /// Calculate a pixel modified according to brightness and contrast

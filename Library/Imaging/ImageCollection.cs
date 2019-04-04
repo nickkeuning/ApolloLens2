@@ -1,13 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
-using Windows.UI.Xaml.Media.Imaging;
-using System.ComponentModel;
-using System;
-using Windows.Storage;
 using Windows.Storage.Streams;
-using System.IO;
-using Windows.Graphics.Imaging;
-using ApolloLensLibrary.Utilities;
 
 
 namespace ApolloLensLibrary.Imaging

@@ -9,11 +9,7 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using Windows.Storage;
 using Windows.Storage.Pickers;
-using Windows.UI.Xaml.Media.Imaging;
-using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.Graphics.Imaging;
-using Dicom.Imaging.Render;
-
+using Windows.Storage.Streams;
 
 
 namespace ApolloLensLibrary.Imaging
@@ -117,14 +113,10 @@ namespace ApolloLensLibrary.Imaging
 
             var dicomImage = new DicomImage(dicomFile.Dataset);
             var pixelBuffer = dicomImage.RenderImage().AsWriteableBitmap().PixelBuffer;
+
+            var reader = DataReader.FromBuffer(pixelBuffer);
             var imageBytes = new byte[pixelBuffer.Length];
-            using (var source = pixelBuffer.AsStream())
-            {
-                using (var dest = imageBytes.AsBuffer().AsStream())
-                {
-                    source.CopyTo(dest);
-                }
-            }
+            reader.ReadBytes(imageBytes);
 
             return new ImageTransferObject()
             {

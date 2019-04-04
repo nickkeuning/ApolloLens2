@@ -1,13 +1,12 @@
-﻿using System;
+﻿using ApolloLensLibrary.Utilities;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Windows.Networking.Sockets;
-using Windows.Networking;
-using Windows.Storage.Streams;
-using ApolloLensLibrary.Utilities;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Threading.Tasks;
+using Windows.Networking;
+using Windows.Networking.Sockets;
+using Windows.Storage.Streams;
 
 
 namespace ApolloLensLibrary.Imaging
@@ -117,19 +116,9 @@ namespace ApolloLensLibrary.Imaging
 
             await reader.LoadAsync(bufferLength);
 
-            //var imageBytes = new byte[bufferLength];
-            //reader.ReadBytes(imageBytes);
-
-            var buffer = reader.ReadBuffer(bufferLength);
-
             var imageBytes = new byte[bufferLength];
-            using (var source = buffer.AsStream())
-            {
-                using (var destination = imageBytes.AsBuffer().AsStream())
-                {
-                    await source.CopyToAsync(destination);
-                }
-            }
+            reader.ReadBytes(imageBytes);
+
             imageCollection.AddImageToSeries(
                 imageBytes, seriesName, position, width, height);
             this.OnLoadedImage();

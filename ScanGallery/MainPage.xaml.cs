@@ -40,23 +40,47 @@ namespace ScanGallery
     /// </summary>
     public sealed partial class MainPage : Page, INotifyPropertyChanged
     {
-        private IDicomStudy ImageCollection { get; set; }
+        private IImageCollection ImageCollection { get; set; }
 
-        public IList<string> SeriesNames => this.ImageCollection?.GetSeriesNames();
+        #region Bindings
+
+        public Array Stretches { get; } = Enum.GetNames(typeof(Stretch));
+
+        public IEnumerable<string> SeriesNames => this.ImageCollection?.GetSeriesNames();
         public SoftwareBitmapSource SoftwareBitmapSource { get; set; }
 
         private string ServerAddressKey { get; } = "CustomServerAddress";
         public string ServerAddress { get; set; }
 
-        private SpeechRecognizer SpeechRecognizer { get; set; }
+        private int index;
+        public int Index
+        {
+            get
+            {
+                return this.index;
+            }
+            set
+            {
+                var moveImage = index < value ?
+                    new Action(() => this.ImageCollection.MoveNext()) :
+                    new Action(() => this.ImageCollection.MovePrevious());
+
+                foreach (var i in Util.Range(Math.Abs(index - value)))
+                {
+                    moveImage();
+                }
+            }
+        }
+
+        #endregion
+
+        #region Startup
 
         public MainPage()
         {
             this.DataContext = this;
             this.InitializeComponent();
             this.SoftwareBitmapSource = new SoftwareBitmapSource();
-
-            ApplicationView.GetForCurrentView().SetPreferredMinSize(new Size(width: 100, height: 100));
 
             if (!ApplicationData.Current.LocalSettings.Values.TryGetValue(this.ServerAddressKey, out object value))
             {
@@ -67,45 +91,86 @@ namespace ScanGallery
             this.OnPropertyChanged(nameof(this.ServerAddress));
         }
 
-        private void OnPropertyChanged(string propertyName)
-        {
-            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             await this.InitializeRecognizer();
         }
 
-        #region Images
+        #endregion
+
+        #region INotify
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private void OnPropertyChanged(string propertyName)
+        {
+            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        #endregion
+
+        #region LoadingUIHandlers
 
         private async void LoadStudy_Click(object sender, RoutedEventArgs e)
         {
-            this.LoadStudy.ToggleVisibility();
-            this.ImageCollection = await DicomNetworking.GetStudyAsync(this.ServerAddress);
+            var loader = new DicomNetworking();
+            loader.ReadyToLoad += (s, num) =>
+            {
+                this.LoadSettings.ToggleVisibility();
+                this.LoadBarPanel.ToggleVisibility();
+
+                this.LoadingBar.Maximum = num;
+            };
+
+            loader.LoadedImage += (s, a) =>
+            {
+                this.LoadingBar.Value++;
+            };
+
+            this.ImageCollection = await loader.GetStudyAsync(this.ServerAddress);
             this.OnStudyLoaded();
         }
 
         private async void LoadStudyLocal_Click(object sender, RoutedEventArgs e)
         {
-            this.LoadStudyLocal.ToggleVisibility();
-            this.ImageCollection = await DicomParser.GetStudy();
+            var parser = new DicomParser();
+            parser.ReadyToLoad += async (s, num) =>
+            {
+                await this.RunOnUi(() =>
+                {
+                    this.LoadSettings.ToggleVisibility();
+                    this.LoadBarPanel.ToggleVisibility();
+
+                    this.LoadingBar.Maximum = num;
+                });
+            };
+
+            parser.LoadedImage += async (s, a) =>
+            {
+                await this.RunOnUi(() =>
+                {
+                    this.LoadingBar.Value++;
+                });
+            };
+
+            this.ImageCollection = await parser.GetStudyAsCollection();
             this.OnStudyLoaded();
         }
 
         private void OnStudyLoaded()
         {
-            this.ImageCollection.ImageChanged += async (s, smartBm) =>
+            this.ImageCollection.ImageChanged += async (s, args) =>
             {
                 await this.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
                 {
+                    this.index = args.Index;
+                    this.OnPropertyChanged(nameof(this.Index));
+
                     var bm = SoftwareBitmap.CreateCopyFromBuffer(
-                        smartBm.GetImage().AsBuffer(),
+                        args.Image,
                         BitmapPixelFormat.Bgra8,
-                        smartBm.Width,
-                        smartBm.Height,
+                        args.Width,
+                        args.Height,
                         BitmapAlphaMode.Premultiplied);
 
                     this.SoftwareBitmapSource = new SoftwareBitmapSource();
@@ -119,21 +184,25 @@ namespace ScanGallery
 
             this.OnPropertyChanged(nameof(this.SeriesNames));
             this.SeriesSelect.SelectedIndex = 0;
-            this.SetSlider();
+            this.StretchSelect.SelectedIndex = 2;
         }
 
-        private void SetSlider()
+        #endregion
+
+        #region UIHandlers
+
+        private void StretchSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            this.Slider.Minimum = 0;
-            this.Slider.Maximum = this.ImageCollection.GetCurrentSeriesSize();
-            this.Slider.Value = this.ImageCollection.GetCurrentIndex();
+            var str = (string)this.StretchSelect.SelectedItem;
+            Enum.TryParse(typeof(Stretch), str, out object stretch);
+            this.Image.Stretch = (Stretch)stretch;
         }
 
         private void SeriesSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             var series = (string)(sender as ComboBox).SelectedItem;
             this.ImageCollection.SetCurrentSeries(series);
-            this.SetSlider();
+            this.Slider.Maximum = this.ImageCollection.GetCurrentSeriesSize() - 1;
         }
 
         private void BrightUp_Click(object sender, RoutedEventArgs e)
@@ -163,45 +232,12 @@ namespace ScanGallery
 
         private void Next_Click(object sender, RoutedEventArgs e)
         {
-            this.NextImage();
+            this.ImageCollection.MoveNext();
         }
 
         private void Previous_Click(object sender, RoutedEventArgs e)
         {
-            this.PreviousImage();
-        }
-
-        private void NextImage()
-        {
-            this.Slider.Value += 1;
-        }
-
-        private void PreviousImage()
-        {
-            this.Slider.Value -= 1;
-        }
-
-        private void Slider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
-        {
-            var action = e.NewValue > e.OldValue ?
-                new Func<bool>(this.ImageCollection.MoveNext) :
-                new Func<bool>(this.ImageCollection.MovePrevious);
-
-            var delta = (int)Math.Abs(e.NewValue - e.OldValue);
-            foreach (var i in Util.Range(delta))
-            {
-                var success = action();
-                if (!success)
-                {
-                    this.OnReachedLastImage();
-                    break;
-                }
-            }
-        }
-
-        private void OnReachedLastImage()
-        {
-            this.StopScroll();
+            this.ImageCollection.MovePrevious();
         }
 
         private void ServerAddressBox_SelectionChanged(object sender, RoutedEventArgs e)
@@ -212,10 +248,10 @@ namespace ScanGallery
 
         #endregion
 
-
         #region Speech
 
-
+        private SpeechRecognizer SpeechRecognizer { get; set; }
+        private ThreadPoolTimer Scroll { get; set; }
 
         private async Task<bool> RequestMicrophonePermission()
         {
@@ -264,7 +300,9 @@ namespace ScanGallery
             await this.SpeechRecognizer.ContinuousRecognitionSession.StartAsync();
         }
 
-        private async void ContinuousRecognitionSession_Completed(SpeechContinuousRecognitionSession sender, SpeechContinuousRecognitionCompletedEventArgs args)
+        private async void ContinuousRecognitionSession_Completed(
+            SpeechContinuousRecognitionSession sender,
+            SpeechContinuousRecognitionCompletedEventArgs args)
         {
             await this.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
             {
@@ -281,10 +319,10 @@ namespace ScanGallery
             switch (command)
             {
                 case "next":
-                    await this.RunOnUi(this.NextImage);
+                    await this.RunOnUi(() => this.ImageCollection.MoveNext());
                     break;
                 case "previous":
-                    await this.RunOnUi(this.PreviousImage);
+                    await this.RunOnUi(() => this.ImageCollection.MovePrevious());
                     break;
                 case "scroll left":
                     await this.RunOnUi(() => this.StartScroll(true));
@@ -298,20 +336,24 @@ namespace ScanGallery
             }
         }
 
-        private ThreadPoolTimer Scroll;
 
         private void StartScroll(bool left)
         {
             if (this.Scroll != null)
                 return;
 
-            var op = left ?
-                new Action(this.PreviousImage) :
-                new Action(this.NextImage);
+            var moveImage = left ?
+                new Func<bool>(this.ImageCollection.MovePrevious) :
+                new Func<bool>(this.ImageCollection.MoveNext);
+
             var ts = TimeSpan.FromMilliseconds(100);
             this.Scroll = ThreadPoolTimer.CreatePeriodicTimer(async (source) =>
                 {
-                    await this.RunOnUi(op);
+                    await this.RunOnUi(() =>
+                    {
+                        if (!moveImage())
+                            this.StopScroll();
+                    });
                 },
                 ts);
         }
@@ -332,8 +374,6 @@ namespace ScanGallery
                 () => action());
         }
     }
-
-
 
     #endregion
 }

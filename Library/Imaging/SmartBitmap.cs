@@ -33,8 +33,7 @@ namespace ApolloLensLibrary.Imaging
         public SmartBitmap(byte[] image, int width, int height)
         {
             this.OriginalBytes = image;
-            this.CurrentBytes = new byte[image.Length];
-            image.CopyTo(this.CurrentBytes, 0);
+            this.CurrentBytes = image;
 
             this.Width = width;
             this.Height = height;
@@ -43,9 +42,9 @@ namespace ApolloLensLibrary.Imaging
             this.Contrast = new Contrast();
         }
 
-        public byte[] GetImage()
+        public IBuffer GetImage()
         {
-            return this.CurrentBytes;
+            return this.CurrentBytes.AsBuffer();
         }
 
         public void AdjustImage(Contrast contrast, Brightness brightness)

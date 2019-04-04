@@ -15,16 +15,14 @@
         <SolidColorBrush
             x:Key="SelectedColor"
             Color="#FF3300" />
-        <Visibility
-            x:Key="StartupVis">Visible</Visibility>
-        <Visibility
-            x:Key="RunningVis">Collapsed</Visibility>
     </Page.Resources>
     <Grid>
         <Grid
             x:Name="LoadingScreen"
-            Visibility="{StaticResource StartupVis}">
+            Visibility="Visible">
             <StackPanel
+                x:Name="LoadSettings"
+                Visibility="Visible"
                 Orientation="Horizontal"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Center">
@@ -33,10 +31,10 @@
                     Text="Server Address: "
                     Margin="12" />
                 <TextBox
+                    x:Name="ServerAddressBox"
                     Text="{Binding ServerAddress, Mode=OneWay}"
                     VerticalAlignment="Center"
                     Margin="12"
-                    x:Name="ServerAddressBox"
                     SelectionChanged="ServerAddressBox_SelectionChanged"
                     Width="120" />
                 <Button
@@ -52,10 +50,32 @@
                     Content="Load Study from Local"
                     Margin="12" />
             </StackPanel>
+            <StackPanel
+                x:Name="LoadBarPanel"
+                Visibility="Collapsed"
+                Orientation="Horizontal"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+                <TextBlock
+                    VerticalAlignment="Center"
+                    Text="Loading Images..." />
+                <ProgressBar
+                    x:Name="LoadingBar"
+                    Value="0"
+                    Width="588"
+                    VerticalAlignment="Center"
+                    Margin="24" />
+            </StackPanel>
         </Grid>
         <Grid
             x:Name="RunningScreen"
-            Visibility="{StaticResource RunningVis}">
+            Visibility="Collapsed">
+            <Grid.Background>
+                <ImageBrush
+                    x:Name="Image"
+                    Stretch="UniformToFill"
+                    ImageSource="{Binding SoftwareBitmapSource, Mode=OneWay}" />
+            </Grid.Background>
             <Button
                 VerticalAlignment="Top"
                 HorizontalAlignment="Left"
@@ -123,15 +143,25 @@
                     </Flyout>
                 </Button.Flyout>
             </Button>
-            <Image
-                Canvas.ZIndex="-2"
-                Source="{Binding SoftwareBitmapSource, Mode=OneWay}"
-                VerticalAlignment="Stretch"
-                HorizontalAlignment="Stretch" />
+            <!--<Button 
+                x:Name="ToggleFill"
+                Content="Fill"
+                VerticalAlignment="Top"
+                HorizontalAlignment="Right"
+                Margin="24"
+                Click="ToggleFill_Click"
+                Foreground="{StaticResource TextColor}"/>-->
+            <ComboBox 
+                x:Name="StretchSelect"
+                VerticalAlignment="Top"
+                HorizontalAlignment="Right"
+                Margin="24"
+                SelectionChanged="StretchSelect_SelectionChanged"
+                ItemsSource="{Binding Stretches, Mode=OneTime}" />
             <RepeatButton
+                x:Name="Next"
                 Delay="500"
                 Interval="100"
-                x:Name="Next"
                 Click="Next_Click"
                 Padding="0,0,0,12"
                 Opacity="0.5"
@@ -141,9 +171,9 @@
                 Content="&gt;"
                 Foreground="{StaticResource TextColor}" />
             <RepeatButton
+                x:Name="Previous"
                 Delay="500"
                 Interval="100"
-                x:Name="Previous"
                 Click="Previous_Click"
                 Padding="0,0,0,12"
                 Opacity="0.5"
@@ -153,20 +183,19 @@
                 Content="&lt;"
                 Foreground="{StaticResource TextColor}" />
             <ComboBox
+                x:Name="SeriesSelect"
                 Margin="24"
                 SelectionChanged="SeriesSelect_SelectionChanged"
                 ItemsSource="{Binding SeriesNames}"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Top"
-                FontSize="24"
-                x:Name="SeriesSelect" />
+                FontSize="24" />
             <Slider
                 x:Name="Slider"
                 Minimum="0"
                 Maximum="10"
                 StepFrequency="1"
-                Value="{Binding Index}"
-                ValueChanged="Slider_ValueChanged"
+                Value="{Binding Index, Mode=TwoWay}"
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Bottom"
                 Margin="96,0,96,24" />

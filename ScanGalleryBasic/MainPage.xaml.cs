@@ -30,7 +30,7 @@ namespace ScanGalleryBasic
     public sealed partial class MainPage : Page, INotifyPropertyChanged
     {
 
-        private IDicomStudy ImageCollection { get; set; }
+        private IImageCollection ImageCollection { get; set; }
 
         public IList<string> SeriesNames => this.ImageCollection?.GetSeriesNames();
         public SoftwareBitmapSource SoftwareBitmapSource { get; set; }
@@ -51,7 +51,7 @@ namespace ScanGalleryBasic
 
         protected async override void OnNavigatedTo(NavigationEventArgs e)
         {
-            this.ImageCollection = await DicomParser.GetStudy();
+            this.ImageCollection = await DicomParser.GetStudyAsCollection();
             this.ImageCollection.ImageChanged += async (s, smartBm) =>
             {
                 await this.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
@@ -78,7 +78,7 @@ namespace ScanGalleryBasic
         {
             this.Slider.Minimum = 0;
             this.Slider.Maximum = this.ImageCollection.GetCurrentSeriesSize();
-            this.Slider.Value = this.ImageCollection.GetCurrentIndex();
+            this.Slider.Value = this.ImageCollection.CurrentIndex;
         }
 
         private void SeriesSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)

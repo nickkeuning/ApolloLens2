@@ -12,12 +12,37 @@ using System.Runtime.InteropServices.WindowsRuntime;
 
 namespace ApolloLensLibrary.Imaging
 {
-    public static class DicomNetworking
+    public class DicomNetworking
     {
-        public static async Task SendStudyAsync(IDictionary<string, IEnumerable<ImageTransferObject>> images, StreamSocket socket)
+        public event EventHandler<int> ReadyToLoad;
+        public event EventHandler LoadedImage;
+        public event EventHandler SentImage;
+
+        private void OnReceivedNumImages(int numImages)
         {
+            this.ReadyToLoad?.Invoke(this, numImages);
+        }
+
+        private void OnLoadedImage()
+        {
+            this.LoadedImage?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnSentImage()
+        {
+            this.SentImage?.Invoke(this, EventArgs.Empty);
+        }
+
+        public async Task SendStudyAsync(IDictionary<string, IEnumerable<ImageTransferObject>> images, StreamSocket socket)
+        {
+            var numImages = images
+                .Values
+                .SelectMany(series => series)
+                .Count();
+                
             using (var writer = new DataWriter(socket.OutputStream))
             {
+                writer.WriteInt32(numImages);
                 writer.WriteInt32(images.Keys.Count);
                 await writer.StoreAsync();
 
@@ -35,21 +60,26 @@ namespace ApolloLensLibrary.Imaging
                         writer.WriteUInt32(image.Image.AsBuffer().Length);
                         writer.WriteBuffer(image.Image.AsBuffer());
                         await writer.StoreAsync();
+                        this.OnSentImage();
                     }
                 }
             }
         }
 
-        public static async Task<IDicomStudy> GetStudyAsync(string address)
+        public async Task<IImageCollection> GetStudyAsync(string address)
         {
             var client = new StreamSocket();
             await client.ConnectAsync(new HostName(address), "8080");
 
-            var imageCollection = new ImageCollection();
+            var imageCollection = ImageCollection.Create();
 
             using (var reader = new DataReader(client.InputStream))
             {
-                await reader.LoadAsync(sizeof(int));
+                await reader.LoadAsync(sizeof(int) * 2);
+
+                var numImages = reader.ReadInt32();
+                this.OnReceivedNumImages(numImages);
+
                 var numSeries = reader.ReadInt32();
                 foreach (var i in Util.Range(numSeries))
                 {
@@ -60,7 +90,7 @@ namespace ApolloLensLibrary.Imaging
             return imageCollection;
         }
 
-        private static async Task LoadSeriesAsync(DataReader reader, IDicomStudy imageCollection)
+        private async Task LoadSeriesAsync(DataReader reader, IImageCollection imageCollection)
         {
             await reader.LoadAsync(sizeof(int));
             var nameLength = reader.ReadUInt32();
@@ -78,7 +108,7 @@ namespace ApolloLensLibrary.Imaging
             }
         }
 
-        private static async Task LoadImageAsync(DataReader reader, string seriesName, int position, IDicomStudy imageCollection)
+        private async Task LoadImageAsync(DataReader reader, string seriesName, int position, IImageCollection imageCollection)
         {
             await reader.LoadAsync(sizeof(int) * 2 + sizeof(uint));
             var width = reader.ReadInt32();
@@ -86,6 +116,10 @@ namespace ApolloLensLibrary.Imaging
             var bufferLength = reader.ReadUInt32();
 
             await reader.LoadAsync(bufferLength);
+
+            //var imageBytes = new byte[bufferLength];
+            //reader.ReadBytes(imageBytes);
+
             var buffer = reader.ReadBuffer(bufferLength);
 
             var imageBytes = new byte[bufferLength];
@@ -98,8 +132,7 @@ namespace ApolloLensLibrary.Imaging
             }
             imageCollection.AddImageToSeries(
                 imageBytes, seriesName, position, width, height);
+            this.OnLoadedImage();
         }
-
-
     }
 }

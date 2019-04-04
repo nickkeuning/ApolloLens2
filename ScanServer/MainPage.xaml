@@ -8,18 +8,39 @@
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
     <Grid>
-        <TextBlock
-            x:Name="LoadingBlock"
-            Text="Loading Images..."
+        <Button 
+            x:Name="Load"
+            VerticalAlignment="Center"
+            HorizontalAlignment="Center"
+            Content="Load Dicom Images From Directory"
+            Click="Load_Click"/>
+        <StackPanel
             HorizontalAlignment="Center"
             VerticalAlignment="Center"
-            FontSize="72" />
-        <TextBlock
-            x:Name="ReadyBlock"
-            Text="Ready"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            FontSize="72"
-            Visibility="Collapsed" />
+            x:Name="StatusPanel"
+            Orientation="Horizontal">
+            <TextBlock
+                VerticalAlignment="Center"
+                Visibility="Collapsed"
+                x:Name="SendingBlock"
+                Text="Sending images..." />
+            <TextBlock
+                Visibility="Collapsed"
+                VerticalAlignment="Center"
+                x:Name="LoadingBlock"
+                Text="Loading images..." />
+            <TextBlock
+                Visibility="Collapsed"
+                VerticalAlignment="Center"
+                x:Name="WaitingBlock"
+                Text="Waiting for connection.." />
+            <ProgressBar
+                Visibility="Collapsed"
+                VerticalAlignment="Center"
+                Width="588"
+                Value="0"
+                Margin="24"
+                x:Name="LoadingBar" />
+        </StackPanel>
     </Grid>
 </Page>

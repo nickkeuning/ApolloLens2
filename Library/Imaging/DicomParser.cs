@@ -20,11 +20,24 @@ namespace ApolloLensLibrary.Imaging
 {
     public class DicomParser
     {
-        public static async Task<IDicomStudy> GetStudy()
-        {
-            var raw = await GetStudyRaw();
+        public event EventHandler<int> ReadyToLoad;
+        public event EventHandler LoadedImage;
 
-            var result = new ImageCollection();
+        private void OnReadyToLoad(int numImages)
+        {
+            this.ReadyToLoad?.Invoke(this, numImages);
+        }
+
+        private void OnLoadedImage()
+        {
+            this.LoadedImage?.Invoke(this, EventArgs.Empty);
+        }
+
+        public async Task<IImageCollection> GetStudyAsCollection()
+        {
+            var raw = await this.GetStudyRaw();
+
+            var result = ImageCollection.Create();
 
             foreach (var series in raw.Keys)
             {
@@ -40,15 +53,18 @@ namespace ApolloLensLibrary.Imaging
             return result;
         }
 
-        public static async Task<IDictionary<string, IEnumerable<ImageTransferObject>>> GetStudyRaw()
+        public async Task<IDictionary<string, IEnumerable<ImageTransferObject>>> GetStudyRaw()
         {
-            var directory = await GetDicomDirectory();
-            var imagePaths = await directory.GetImagePaths();
+            var directory = await this.GetDicomDirectory();
+            var imagePaths = await this.GetImagePaths(directory);
+
+            this.OnReadyToLoad(imagePaths.Count());
 
             var collection = new List<ImageTransferObject>(imagePaths.Count());
             foreach (var path in imagePaths)
             {
                 collection.Add(await ProcessImagePath(directory, path));
+                this.OnLoadedImage();
             }
 
             var res = collection
@@ -72,7 +88,7 @@ namespace ApolloLensLibrary.Imaging
             return res;            
         }
 
-        private static async Task<StorageFolder> GetDicomDirectory()
+        private async Task<StorageFolder> GetDicomDirectory()
         {
             var folderPicker = new FolderPicker();
             folderPicker.SuggestedStartLocation = PickerLocationId.Desktop;
@@ -81,7 +97,7 @@ namespace ApolloLensLibrary.Imaging
             return await folderPicker.PickSingleFolderAsync();
         }
 
-        private static async Task<ImageTransferObject> ProcessImagePath(StorageFolder directory, string path)
+        private async Task<ImageTransferObject> ProcessImagePath(StorageFolder directory, string path)
         {
             var file = await directory.GetFileAsync(path);
             var stream = await file.OpenStreamForReadAsync();
@@ -119,24 +135,8 @@ namespace ApolloLensLibrary.Imaging
                 Height = dicomImage.Height
             };
         }
-    }
 
-    public static class DicomExtensions
-    {
-        public static IEnumerable<XElement> GetElementsByDicomKeyword(this XDocument xdoc, string keyword)
-        {
-            return xdoc
-                .Descendants("DicomAttribute")
-                .Where(elt =>
-                {
-                    return elt
-                        .Attribute("keyword")
-                        .Value
-                        .Contains(keyword);
-                });
-        }
-
-        public static async Task<string> GetDicomDirFileName(this StorageFolder directory)
+        private async Task<string> GetDicomDirFileName(StorageFolder directory)
         {
             var files = await directory.GetFilesAsync();
 
@@ -146,17 +146,17 @@ namespace ApolloLensLibrary.Imaging
                 .FirstOrDefault();
         }
 
-        public static async Task<IEnumerable<string>> GetImagePaths(this StorageFolder directory)
+        private async Task<IEnumerable<string>> GetImagePaths(StorageFolder directory)
         {
-            var fileName = await directory.GetDicomDirFileName();
+            var fileName = await GetDicomDirFileName(directory);
             if (fileName != null)
             {
-                return await directory.GetPathsFromDicomDirFile(fileName);
+                return await this.GetPathsFromDicomDirFile(directory, fileName);
             }
-            return await directory.GetPathsFromDirectory();
+            return await this.GetPathsFromDirectory(directory);
         }
 
-        public static async Task<IEnumerable<string>> GetPathsFromDicomDirFile(this StorageFolder directory, string fileName)
+        private async Task<IEnumerable<string>> GetPathsFromDicomDirFile(StorageFolder directory, string fileName)
         {
             var dicomdirFile = await directory.GetFileAsync(fileName);
             var stream = await dicomdirFile.OpenStreamForReadAsync();
@@ -177,11 +177,28 @@ namespace ApolloLensLibrary.Imaging
                 .ToList();
         }
 
-        public static async Task<IEnumerable<string>> GetPathsFromDirectory(this StorageFolder directory)
+        private async Task<IEnumerable<string>> GetPathsFromDirectory(StorageFolder directory)
         {
             var files = await directory.GetFilesAsync();
             return files
                 .Select(file => file.Name);
+        }
+
+    }
+
+    public static class DicomExtensions
+    {
+        public static IEnumerable<XElement> GetElementsByDicomKeyword(this XDocument xdoc, string keyword)
+        {
+            return xdoc
+                .Descendants("DicomAttribute")
+                .Where(elt =>
+                {
+                    return elt
+                        .Attribute("keyword")
+                        .Value
+                        .Contains(keyword);
+                });
         }
     }
 

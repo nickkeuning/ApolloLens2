@@ -18,6 +18,7 @@ using Windows.Networking.Sockets;
 using System.Threading.Tasks;
 using Windows.Storage.Streams;
 using ApolloLensLibrary.Utilities;
+using Windows.UI.Core;
 
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
@@ -34,25 +35,90 @@ namespace ScanServer
             this.InitializeComponent();
         }
 
-        protected override async void OnNavigatedTo(NavigationEventArgs e)
+        IDictionary<string, IEnumerable<ImageTransferObject>> images;
+        DicomNetworking dicomSender;
+        StreamSocketListener server;
+
+        private async void Load_Click(object sender, RoutedEventArgs e)
         {
-            var images = await DicomParser.GetStudyRaw();
-            var server = new StreamSocketListener();
-            server.ConnectionReceived += async (s, args) =>
+            await this.LoadImages();
+            await this.InitializeServer();
+
+            this.WaitingBlock.ToggleVisibility();           
+        }
+
+        private async Task InitializeServer()
+        {
+            this.server = new StreamSocketListener();
+            this.server.ConnectionReceived += this.Server_ConnectionReceived;
+
+            this.dicomSender = new DicomNetworking();
+            this.dicomSender.SentImage += this.Sender_SentImage;
+
+            await this.server.BindServiceNameAsync("8080");
+        }
+
+        private async void Sender_SentImage(object sender, EventArgs e)
+        {
+            await this.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
             {
+                this.LoadingBar.Value++;
+            });
+        }
+
+        private async void Server_ConnectionReceived(
+            StreamSocketListener sender,
+            StreamSocketListenerConnectionReceivedEventArgs args)
+        {
+            await this.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
+            {
+                this.LoadingBar.Value = 0;
+                this.WaitingBlock.ToggleVisibility();
+                this.LoadingBar.ToggleVisibility();
+                this.SendingBlock.ToggleVisibility();
+
                 try
                 {
-                    await DicomNetworking.SendStudyAsync(images, args.Socket);
+                    await this.dicomSender.SendStudyAsync(this.images, args.Socket);
                 }
-                catch
+                finally
                 {
-                    return;
+                    this.LoadingBar.ToggleVisibility();
+                    this.SendingBlock.ToggleVisibility();
+                    this.WaitingBlock.ToggleVisibility();
                 }
+            });
+
+        }
+
+        private async Task LoadImages()
+        {
+            this.Load.ToggleVisibility();
+
+            var parser = new DicomParser();
+            parser.ReadyToLoad += async (s, num) =>
+            {
+                await this.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+                {
+                    this.LoadingBlock.ToggleVisibility();
+                    this.LoadingBar.ToggleVisibility();
+
+                    this.LoadingBar.Maximum = num;
+                });
             };
 
-            await server.BindServiceNameAsync("8080");
+            parser.LoadedImage += async (s, a) =>
+            {
+                await this.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+                {
+                    this.LoadingBar.Value++;
+                });
+            };
+
+            this.images = await parser.GetStudyRaw();
+
+            this.LoadingBar.ToggleVisibility();
             this.LoadingBlock.ToggleVisibility();
-            this.ReadyBlock.ToggleVisibility();
         }
     }
 }

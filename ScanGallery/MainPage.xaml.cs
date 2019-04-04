@@ -47,7 +47,9 @@ namespace ScanGallery
 
         public Array Stretches { get; } = Enum.GetNames(typeof(Stretch));
 
-        public IEnumerable<string> SeriesNames => this.ImageCollection?.GetSeriesNames();
+        public IEnumerable<string> SeriesNamesItems => 
+            this.ImageCollection?.GetSeriesNames().Select((s, i) => { return $"{i + 1}. {s}"; });
+
         public SoftwareBitmapSource SoftwareBitmapSource { get; set; }
 
         private string ServerAddressKey { get; } = "CustomServerAddress";
@@ -129,7 +131,7 @@ namespace ScanGallery
             };
 
             this.ImageCollection = await loader.GetStudyAsync(this.ServerAddress);
-            this.OnStudyLoaded();
+            await this.OnStudyLoaded();
         }
 
         private async void LoadStudyLocal_Click(object sender, RoutedEventArgs e)
@@ -155,10 +157,10 @@ namespace ScanGallery
             };
 
             this.ImageCollection = await parser.GetStudyAsCollection();
-            this.OnStudyLoaded();
+            await this.OnStudyLoaded();
         }
 
-        private void OnStudyLoaded()
+        private async Task OnStudyLoaded()
         {
             this.ImageCollection.ImageChanged += async (s, args) =>
             {
@@ -183,9 +185,11 @@ namespace ScanGallery
             this.LoadingScreen.ToggleVisibility();
             this.RunningScreen.ToggleVisibility();
 
-            this.OnPropertyChanged(nameof(this.SeriesNames));
+            this.OnPropertyChanged(nameof(this.SeriesNamesItems));
             this.SeriesSelect.SelectedIndex = 0;
             this.StretchSelect.SelectedIndex = 2;
+
+            await this.StartListening();
         }
 
         #endregion
@@ -201,7 +205,10 @@ namespace ScanGallery
 
         private void SeriesSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var series = (string)(sender as ComboBox).SelectedItem;
+            var series = this.ImageCollection
+                .GetSeriesNames()
+                .ElementAtOrDefault(this.SeriesSelect.SelectedIndex);
+
             this.ImageCollection.SetCurrentSeries(series);
             this.Slider.Maximum = this.ImageCollection.GetCurrentSeriesSize() - 1;
         }
@@ -284,14 +291,52 @@ namespace ScanGallery
                 new SpeechRecognitionListConstraint(
                     new List<string>()
                     {
-                        "next", "previous", "scroll left", "scroll right", "stop scrolling"
-                    }));
-
-            await this.SpeechRecognizer.CompileConstraintsAsync();
-            await this.InitializeContinousRecognition();
+                        "next",
+                        "previous",
+                        "scroll left",
+                        "scroll right",
+                        "stop scrolling",
+                        "switch series",
+                        "select series"
+                    }));            
         }
 
-        private async Task InitializeContinousRecognition()
+        private async Task StartListening()
+        {
+            this.AddSeriesCommands();
+            await this.SpeechRecognizer.CompileConstraintsAsync();
+            await this.StartContinuousRecognition();
+        }
+
+        private void AddSeriesCommands()
+        {
+            var nums = Util.Range(this.ImageCollection.GetSeriesNames().Count);
+            var commands = nums
+                .Select(num => $"series {num + 1}")
+                .ToList();
+
+            this.SpeechRecognizer.Constraints.Add(
+                new SpeechRecognitionListConstraint(commands));
+
+            this.SpeechRecognizer.ContinuousRecognitionSession.ResultGenerated += async (s, args) =>
+            {
+                await this.RunOnUi(() =>
+                {
+                    if (!commands.Contains(args.Result.Text) || !this.SeriesSelect.IsDropDownOpen)
+                        return;
+
+                    var rawCommand = args.Result.Text.Split(' ').ElementAtOrDefault(1);
+                    if (int.TryParse(rawCommand, out var index))
+                    {
+                        this.SeriesSelect.SelectedIndex = index - 1;
+                        this.SeriesSelect.IsDropDownOpen = false;
+                    }
+                });
+
+            };
+        }
+
+        private async Task StartContinuousRecognition()
         {
             var continuous = this.SpeechRecognizer.ContinuousRecognitionSession;
 
@@ -323,6 +368,10 @@ namespace ScanGallery
                         break;
                     case "stop scrolling":
                         await this.RunOnUi(() => this.StopScroll());
+                        break;
+                    case "select series":
+                    case "switch series":
+                        await this.RunOnUi(() => this.OpenSeriesSelect());
                         break;
                 }
             };
@@ -359,6 +408,11 @@ namespace ScanGallery
 
             this.Scroll.Cancel();
             this.Scroll = null;
+        }
+
+        private void OpenSeriesSelect()
+        {
+            this.SeriesSelect.IsDropDownOpen = true;
         }
 
         #endregion

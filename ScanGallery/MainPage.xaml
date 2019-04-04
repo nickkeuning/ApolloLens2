@@ -93,6 +93,7 @@
                                 <RowDefinition />
                                 <RowDefinition />
                                 <RowDefinition />
+                                <RowDefinition />
                             </Grid.RowDefinitions>
                             <Button
                                 x:Name="BrightUp"
@@ -100,7 +101,7 @@
                                 Content="Brightness Up"
                                 Grid.Column="0"
                                 Grid.Row="0"
-                                Margin="0,0,6,6"
+                                Margin="0 0 6 6"
                                 HorizontalAlignment="Stretch"
                                 Foreground="{StaticResource TextColor}" />
                             <Button
@@ -109,7 +110,7 @@
                                 Content="Brightness Down"
                                 Grid.Column="0"
                                 Grid.Row="1"
-                                Margin="0,6,6,0"
+                                Margin="0 6 6 0"
                                 HorizontalAlignment="Stretch"
                                 Foreground="{StaticResource TextColor}" />
                             <Button
@@ -118,7 +119,7 @@
                                 Content="Contrast Up"
                                 Grid.Column="1"
                                 Grid.Row="0"
-                                Margin="6,0,0,6"
+                                Margin="6 0 0 6"
                                 HorizontalAlignment="Stretch"
                                 Foreground="{StaticResource TextColor}" />
                             <Button
@@ -127,7 +128,7 @@
                                 Content="Contrast Down"
                                 Grid.Column="1"
                                 Grid.Row="1"
-                                Margin="6,6,0,0"
+                                Margin="6 6 0 0"
                                 HorizontalAlignment="Stretch"
                                 Foreground="{StaticResource TextColor}" />
                             <Button
@@ -137,33 +138,28 @@
                                 Grid.Row="2"
                                 Grid.ColumnSpan="2"
                                 HorizontalAlignment="Stretch"
-                                Margin="0,12,0,0"
+                                Margin="0 12 0 0"
                                 Foreground="{StaticResource TextColor}" />
+                            <ComboBox
+                                x:Name="StretchSelect"
+                                Grid.Row="3"
+                                Grid.ColumnSpan="2"
+                                VerticalAlignment="Top"
+                                HorizontalAlignment="Stretch"
+                                Margin="0 12 0 0"
+                                SelectionChanged="StretchSelect_SelectionChanged"
+                                ItemsSource="{Binding Stretches, Mode=OneTime}" />
                         </Grid>
                     </Flyout>
                 </Button.Flyout>
             </Button>
-            <!--<Button 
-                x:Name="ToggleFill"
-                Content="Fill"
-                VerticalAlignment="Top"
-                HorizontalAlignment="Right"
-                Margin="24"
-                Click="ToggleFill_Click"
-                Foreground="{StaticResource TextColor}"/>-->
-            <ComboBox 
-                x:Name="StretchSelect"
-                VerticalAlignment="Top"
-                HorizontalAlignment="Right"
-                Margin="24"
-                SelectionChanged="StretchSelect_SelectionChanged"
-                ItemsSource="{Binding Stretches, Mode=OneTime}" />
+            
             <RepeatButton
                 x:Name="Next"
                 Delay="500"
                 Interval="100"
                 Click="Next_Click"
-                Padding="0,0,0,12"
+                Padding="0 0 0 12"
                 Opacity="0.5"
                 FontSize="72"
                 Margin="24"
@@ -175,7 +171,7 @@
                 Delay="500"
                 Interval="100"
                 Click="Previous_Click"
-                Padding="0,0,0,12"
+                Padding="0 0 0 12"
                 Opacity="0.5"
                 FontSize="72"
                 Margin="24"
@@ -186,7 +182,7 @@
                 x:Name="SeriesSelect"
                 Margin="24"
                 SelectionChanged="SeriesSelect_SelectionChanged"
-                ItemsSource="{Binding SeriesNames}"
+                ItemsSource="{Binding SeriesNamesItems}"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Top"
                 FontSize="24" />
@@ -198,7 +194,7 @@
                 Value="{Binding Index, Mode=TwoWay}"
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Bottom"
-                Margin="96,0,96,24" />
+                Margin="96 0 96 24" />
         </Grid>
     </Grid>
 </Page>

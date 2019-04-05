@@ -322,7 +322,7 @@ namespace ScanGallery
             {
                 await this.RunOnUi(() =>
                 {
-                    if (!commands.Contains(args.Result.Text) || !this.SeriesSelect.IsDropDownOpen)
+                    if (!this.SeriesSelect.IsDropDownOpen || !commands.Contains(args.Result.Text))
                         return;
 
                     var rawCommand = args.Result.Text.Split(' ').ElementAtOrDefault(1);

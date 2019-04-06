@@ -8,68 +8,66 @@
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition 
-                Width="auto" />
-            <ColumnDefinition
-                Width="*" />
-            <ColumnDefinition
-                Width="auto" />
-        </Grid.ColumnDefinitions>
-        <StackPanel
-            x:Name="SettingsPanel"
-            Grid.Column="0"
-            Margin="12"
-            Width="auto"
-            HorizontalAlignment="Left">
-            <ToggleSwitch
-                x:Name="RemoteServerToggle"
-                Margin="12,12,12,0"
-                IsOn="{Binding ConnectAzure, Mode=TwoWay}"
-                Toggled="RemoteServerToggle_Toggled"
-                HorizontalAlignment="Stretch">Connect to Azure</ToggleSwitch>
+        <Grid
+            x:Name="NotInCall">
+            <StackPanel
+                x:Name="StartupSettings"
+                Visibility="Visible"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Center"
+                Orientation="Horizontal">
+                <ToggleSwitch
+                    x:Name="RemoteServerToggle"
+                    Margin="12"
+                    IsOn="{Binding ConnectAzure, Mode=TwoWay}"
+                    Toggled="RemoteServerToggle_Toggled">Connect to Azure</ToggleSwitch>
+                <TextBox
+                    x:Name="CustomServerAddressBox"
+                    VerticalAlignment="Center"
+                    Text="{Binding CustomAddress, Mode=TwoWay}"
+                    SelectionChanged="CustomServerAddressBox_SelectionChanged"
+                    PlaceholderText="Custom Signalling Server IP"
+                    Margin="12" />
+                <Button
+                    x:Name="ServerConnectButton"
+                    Click="ServerConnectButton_Click"
+                    Content="Connect to Signalling Server"
+                    HorizontalAlignment="Stretch"
+                    Margin="12" />
+            </StackPanel>
+            <StackPanel
+                x:Name="ConnectedOptions"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Center"
+                Orientation="Horizontal"
+                Visibility="Collapsed">
+                <Button
+                    x:Name="SourceConnectButton"
+                    Content="Connect to Source"
+                    Click="SourceConnectButton_Click"
+                    Margin="12" />
+                <Button
+                    x:Name="SayHiButton"
+                    Click="SayHiButton_Click"
+                    Content="Say Hi"
+                    Margin="12" />
+            </StackPanel>
             <TextBox
-                x:Name="CustomServerAddressBox"
-                Text="{Binding CustomAddress, Mode=TwoWay}"
-                SelectionChanged="CustomServerAddressBox_SelectionChanged"
-                PlaceholderText="Custom Signalling Server IP"
-                HorizontalAlignment="Stretch"
-                Margin="12,12,12,0"/>
-            <Button
-                x:Name="ServerConnectButton"
-                Click="ServerConnectButton_Click"
-                Content="Connect to Signalling Server"
-                HorizontalAlignment="Stretch"
-                Margin="12,12,12,0" />
-            <Button
-                x:Name="SourceConnectButton"
-                Content="Connect to Source"
-                Click="SourceConnectButton_Click"
-                HorizontalAlignment="Stretch"
-                Margin="12, 12, 12, 0" 
-                Visibility="Collapsed"/>
-            <Button
-                x:Name="SayHiButton"
-                Click="SayHiButton_Click"
-                Content="Say Hi"
-                HorizontalAlignment="Stretch"
-                Margin="12,12,12,0" 
-                Visibility="Collapsed"/>
-        </StackPanel>
+                Grid.Column="2"
+                x:Name="OutputTextBox"
+                VerticalAlignment="Stretch"
+                HorizontalAlignment="Right"
+                Margin="10"
+                Width="300"
+                IsReadOnly="True"
+                TextWrapping="Wrap"
+                ScrollViewer.VerticalScrollBarVisibility="Auto" />
+        </Grid>
         <MediaElement
             x:Name="RemoteVideo"
             Grid.Column="1"
             HorizontalAlignment="Stretch"
             RealTimePlayback="True" />
-        <TextBox
-            Grid.Column="2"
-            x:Name="OutputTextBox"
-            VerticalAlignment="Stretch"
-            HorizontalAlignment="Right"
-            Margin="10"
-            Width="300"
-            IsReadOnly="True"
-            TextWrapping="Wrap"
-            ScrollViewer.VerticalScrollBarVisibility="Auto" />
+
     </Grid>
 </Page>

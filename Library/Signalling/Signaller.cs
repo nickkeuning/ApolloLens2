@@ -8,7 +8,7 @@ using MessageType = ApolloLensLibrary.Signalling.MessageProtocol.MessageType;
 
 namespace ApolloLensLibrary.Signalling
 {
-    public class WebSocketSignaller : ICallerSignaller, ICalleeSignaller
+    public class WebSocketSignaller : IClientSignaller, ISourceSignaller, IUISignaller
     {
 
         public event EventHandler<RTCSessionDescription> ReceivedOffer;
@@ -16,10 +16,11 @@ namespace ApolloLensLibrary.Signalling
         public event EventHandler<RTCIceCandidate> ReceivedIceCandidate;
         public event EventHandler<string> ReceivedPlainMessage;
         public event EventHandler ReceivedShutdown;
+        public event EventHandler ConnectionFailed;
 
         private MessageWebSocket WebSocket { get; }
 
-        public static IBaseSignaller CreateSignaller()
+        public static IUISignaller CreateSignaller()
         {
             return new WebSocketSignaller();
         }
@@ -34,7 +35,14 @@ namespace ApolloLensLibrary.Signalling
 
         public async Task ConnectToServer(string address)
         {
-            await this.WebSocket.ConnectAsync(new Uri(address));
+            try
+            {
+                await this.WebSocket.ConnectAsync(new Uri(address));
+            }
+            catch
+            {
+                this.ConnectionFailed?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         public void DisconnectFromServer()
@@ -138,30 +146,33 @@ namespace ApolloLensLibrary.Signalling
         }
     }
 
+    public interface IBaseSignaller
+    {
+        Task SendIceCandidate(RTCIceCandidate iceCandidate);
+        event EventHandler<RTCIceCandidate> ReceivedIceCandidate;
+    }
 
-    public interface ICallerSignaller : IBaseSignaller
+    public interface IClientSignaller : IBaseSignaller
     {
         Task SendOffer(RTCSessionDescription offer);
         event EventHandler<RTCSessionDescription> ReceivedAnswer;
     }
 
-    public interface ICalleeSignaller : IBaseSignaller
+    public interface ISourceSignaller : IBaseSignaller
     {
         Task SendAnswer(RTCSessionDescription answer);
         event EventHandler<RTCSessionDescription> ReceivedOffer;
     }
 
-    public interface IBaseSignaller
+    public interface IUISignaller
     {
         Task ConnectToServer(string address);
         void DisconnectFromServer();
-
-        Task SendIceCandidate(RTCIceCandidate iceCandidate);
         Task SendPlainMessage(string message);
         Task SendShutdown();
 
-        event EventHandler<RTCIceCandidate> ReceivedIceCandidate;
         event EventHandler<string> ReceivedPlainMessage;
         event EventHandler ReceivedShutdown;
+        event EventHandler ConnectionFailed;
     }
 }

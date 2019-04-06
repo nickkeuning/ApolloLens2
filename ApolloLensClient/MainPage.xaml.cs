@@ -15,7 +15,8 @@ using Windows.UI.Xaml.Navigation;
 using ApolloLensLibrary.Conducting;
 using ApolloLensLibrary.Utilities;
 using Windows.Storage;
-
+using Windows.UI.Core;
+using ApolloLensLibrary.Signalling;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -26,29 +27,38 @@ namespace ApolloLensClient
     /// </summary>
     public sealed partial class MainPage : Page
     {
-        public bool Logging { get; set; } = true;
         public bool ConnectAzure { get; set; } = true;
-        public string CustomAddress { get; set; }
 
         private string CustomServerSettingsKey { get; } = "CustomServerAddress";
+        public string CustomAddress { get; set; }
+
         private string ServerAddress => this.ConnectAzure ? ServerConfig.AwsAddress : $"ws://{this.CustomAddress}/";
 
-
-        private Caller Caller { get; }
+        private IClientConductor ClientConductor { get; }
+        private IUISignaller Signaller { get; }
 
         public MainPage()
         {
             this.DataContext = this;
             this.InitializeComponent();
-            Application.Current.Suspending += this.Current_Suspending;
-
-            if (this.Logging)
+            Application.Current.Suspending += async (s, e) =>
             {
-                Logger.WriteMessage += this.WriteLine;
-            }
+                await this.ClientConductor.Shutdown();
+            };
 
-            this.Caller = new Caller(this.RemoteVideo);
-            this.Caller.RemoteStreamAdded += this.Caller_RemoteStreamAdded;
+            Logger.WriteMessage += async (message) =>
+            {
+                await this.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+                {
+                    this.OutputTextBox.Text += message + Environment.NewLine;
+                });
+            };
+
+            this.ClientConductor = Conductor.CreateClient(this.RemoteVideo);
+            this.InitializeConductor();
+
+            this.Signaller = WebSocketSignaller.CreateSignaller();
+            this.InitializeSignaller();
 
             if (!ApplicationData.Current.LocalSettings.Values.TryGetValue(this.CustomServerSettingsKey, out object value))
             {
@@ -57,73 +67,65 @@ namespace ApolloLensClient
             this.CustomAddress = (string)value;
         }
 
-        private async void Current_Suspending(object sender, Windows.ApplicationModel.SuspendingEventArgs e)
+        private void InitializeSignaller()
         {
-            await this.Caller.ShutDown();
-        }
-
-
-
-        #region Utilities
-
-        private async void WriteLine(string Message)
-        {
-            await this.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
+            this.Signaller.ConnectionFailed += (s, a) =>
             {
-                this.OutputTextBox.Text += Message + Environment.NewLine;
-            });
+                Logger.Log("Connecting to signalling server failed. Try again.");
+            };
+
+            this.Signaller.ReceivedPlainMessage += (s, a) =>
+            {
+                Logger.Log($"Received plain message: {a}");
+            };
+
+            this.Signaller.ReceivedShutdown += async (s, a) =>
+            {
+                Logger.Log("Received shutdown message from peer.");
+                await this.ClientConductor.Shutdown();
+            };
         }
 
-        #endregion
+        private void InitializeConductor()
+        {
+            this.ClientConductor.RemoteStreamAdded += (s, a) =>
+            {
+                this.NotInCall.ToggleVisibility();
+            };
+        }
 
 
         #region UI_Handlers        
 
-        private void Caller_RemoteStreamAdded(object sender, EventArgs e)
-        {
-            this.OutputTextBox.Visibility = Visibility.Collapsed;
-        }
-
-        private void LoggerToggle_Click(object sender, RoutedEventArgs e)
-        {
-            if (this.Logging)
-            {
-                Logger.WriteMessage += this.WriteLine;
-            }
-            else
-            {
-                Logger.WriteMessage -= this.WriteLine;
-            }
-        }
-
         private async void ServerConnectButton_Click(object sender, RoutedEventArgs e)
         {
-            this.ServerConnectButton.ToggleVisibility();
-            this.RemoteServerToggle.ToggleVisibility();
-            this.CustomServerAddressBox.Hide();
+            this.StartupSettings.ToggleVisibility();
 
             Logger.Log("Connecting to signalling server...");
-            await this.Caller.ConnectToSignallingServer(this.ServerAddress);
 
-            this.SourceConnectButton.ToggleVisibility();
-            this.SayHiButton.ToggleVisibility();
+            await this.Signaller.ConnectToServer(this.ServerAddress);
+
+            Logger.Log("Connected to signalling server.");
+
+            this.ConnectedOptions.ToggleVisibility();
         }
 
         private async void SayHiButton_Click(object sender, RoutedEventArgs e)
         {
-            await this.Caller.SayHi();
-            Logger.Log("Said hello...");
+            var message = "Hello, World!";
+            await this.Signaller.SendPlainMessage(message);
+            Logger.Log($"Sent {message} to any connected peers");
         }
 
         private async void SourceConnectButton_Click(object sender, RoutedEventArgs e)
         {
-            this.SourceConnectButton.Visibility = Visibility.Collapsed;
-            Logger.Log("Initializing WebRtc...");
-            await this.Caller.Initialize(this.Dispatcher);
-            Logger.Log("Connecting to WebRtc remote source...");
-            await this.Caller.StartPeerConnection();
+            Logger.Log("Initializing WebRTC...");
+            this.ClientConductor.SetSignaller(this.Signaller as IClientSignaller);
+            await this.ClientConductor.Initialize(this.Dispatcher);
+            Logger.Log("Done.");
 
-            this.SettingsPanel.ToggleVisibility();
+            Logger.Log("Starting connection to source...");
+            await this.ClientConductor.ConnectToSource();
         }
 
         private void CustomServerAddressBox_SelectionChanged(object sender, RoutedEventArgs e)

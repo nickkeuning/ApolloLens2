@@ -24,12 +24,12 @@ namespace ApolloLensBasic
     /// </summary>
     public sealed partial class MainPage : Page
     {
-        private Wrapper Wrapper { get; }
+        private MediaWrapper Wrapper { get; }
 
         public MainPage()
         {
             this.InitializeComponent();
-            this.Wrapper = Wrapper.Instance;
+            this.Wrapper = MediaWrapper.Instance;
         }
 
         protected override async void OnNavigatedTo(NavigationEventArgs args)
@@ -62,7 +62,7 @@ namespace ApolloLensBasic
 
         private void CaptureFormatComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var selectedProfile = (this.CaptureFormatComboBox.SelectedItem as Wrapper.CaptureProfile);
+            var selectedProfile = (this.CaptureFormatComboBox.SelectedItem as MediaWrapper.CaptureProfile);
             this.Wrapper.SetSelectedProfile(selectedProfile);
         }
     }

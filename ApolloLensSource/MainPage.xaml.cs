@@ -14,7 +14,8 @@ using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 using ApolloLensLibrary.Conducting;
 using ApolloLensLibrary.Utilities;
-
+using ApolloLensLibrary.Signalling;
+using Windows.UI.Core;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -29,80 +30,91 @@ namespace ApolloLensSource
         public bool ConnectAzure { get; set; } = true;
 
         private string ServerAddress => this.ConnectAzure ? ServerConfig.AwsAddress : ServerConfig.LocalAddress;
-        private Callee Callee { get; set; }
+        private ISourceConductor SourceConductor { get; set; }
+        private IUISignaller Signaller { get; set; }
 
         public MainPage()
         {
             this.DataContext = this;
             this.InitializeComponent();
-            if (this.Logging)
+
+            Logger.WriteMessage += async (message) =>
             {
-                Logger.WriteMessage += this.WriteLine;
-            }
-            this.Callee = new Callee();
+                await this.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+                {
+                    this.OutputTextBox.Text += message + Environment.NewLine;
+                });
+            };
         }
 
         protected override async void OnNavigatedTo(NavigationEventArgs args)
         {
-            await this.Callee.Initialize(this.Dispatcher);
-            var res = this.Callee.CaptureProfiles;
+            Logger.Log("Initializing WebRTC...");
+            this.SourceConductor = Conductor.CreateSource();
+            await this.SourceConductor.Initialize(this.Dispatcher);
+            Logger.Log("Done.");
+
+            var res = this.SourceConductor.GetCaptureProfiles();
             this.CaptureFormatComboBox.ItemsSource = res;
+            this.CaptureFormatComboBox.SelectedIndex = 0;
         }
 
-        #region Utilities
-
-        private async void WriteLine(string Message)
+        private IUISignaller CreateSignaller()
         {
-            await this.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
+            var signaller = WebSocketSignaller.CreateSignaller();
+
+            signaller.ConnectionFailed += (s, a) =>
             {
-                this.OutputTextBox.Text += Message + Environment.NewLine;
-            });
-        }
+                Logger.Log("Connecting to signalling server failed. Try again.");
+            };
 
-        private void ToggleValidWhenDisconnectedControls()
-        {
-            this.ConnectToServerButton.ToggleVisibility();
-            this.RemoteServerToggle.ToggleVisibility();
-            this.CaptureFormatComboBox.ToggleVisibility();
-        }
+            signaller.ReceivedPlainMessage += (s, a) =>
+            {
+                Logger.Log($"Received plain message: {a}");
+            };
 
-        private void ToggleValidWhenConnectedControls()
-        {
-            this.DisconnectFromServerButton.ToggleVisibility();
-            this.SayHiButton.ToggleVisibility();
-        }
+            signaller.ReceivedShutdown += async (s, a) =>
+            {
+                Logger.Log("Received shutdown message from peer.");
+                await this.SourceConductor.Shutdown();
+            };
 
-        #endregion
+            return signaller;
+        }
 
         #region UI_Handlers
 
         private async void ConnectToServer_Click(object sender, RoutedEventArgs e)
         {
-            this.ToggleValidWhenDisconnectedControls();
+            this.NotConnected.ToggleVisibility();
 
-            await this.Callee.ConnectToSignallingServer(this.ServerAddress);
+            this.Signaller = this.CreateSignaller();
+            await this.Signaller.ConnectToServer(this.ServerAddress);
+            this.SourceConductor.SetSignaller(this.Signaller as ISourceSignaller);
 
-            this.ToggleValidWhenConnectedControls();
+            this.Connected.ToggleVisibility();
         }
 
         private async void SayHiButton_Click(object sender, RoutedEventArgs e)
         {
-            await this.Callee.SayHi();
+            var message = "Hello, World!";
+            await this.Signaller.SendPlainMessage(message);
+            Logger.Log($"Send message: {message} to connected peers");
         }
 
         private void DisconnectFromServerButton_Click(object sender, RoutedEventArgs e)
         {
-            this.ToggleValidWhenConnectedControls();
+            this.Connected.ToggleVisibility();
 
-            this.Callee.DisconnectFromSignallingServer();
+            this.Signaller.DisconnectFromServer();
 
-            this.ToggleValidWhenDisconnectedControls();
+            this.NotConnected.ToggleVisibility();
         }
 
         private void CaptureFormatComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var selectedProfile = (this.CaptureFormatComboBox.SelectedItem as Wrapper.CaptureProfile);
-            this.Callee.SetSelectedProfile(selectedProfile);
+            var selectedProfile = (this.CaptureFormatComboBox.SelectedItem as MediaWrapper.CaptureProfile);
+            this.SourceConductor.SetSelectedProfile(selectedProfile);
         }
 
         #endregion

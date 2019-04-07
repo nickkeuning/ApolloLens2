@@ -10,7 +10,6 @@ namespace ApolloLensLibrary.Signalling
 {
     public class WebSocketSignaller : IClientSignaller, ISourceSignaller, IUISignaller
     {
-
         public event EventHandler<RTCSessionDescription> ReceivedOffer;
         public event EventHandler<RTCSessionDescription> ReceivedAnswer;
         public event EventHandler<RTCIceCandidate> ReceivedIceCandidate;
@@ -18,25 +17,21 @@ namespace ApolloLensLibrary.Signalling
         public event EventHandler ReceivedShutdown;
         public event EventHandler ConnectionFailed;
 
-        private MessageWebSocket WebSocket { get; }
+        private MessageWebSocket WebSocket { get; set; }
 
         public static IUISignaller CreateSignaller()
         {
             return new WebSocketSignaller();
         }
 
-        private WebSocketSignaller()
-        {
-            this.WebSocket = new MessageWebSocket();
-            this.WebSocket.Control.MessageType = SocketMessageType.Utf8;
-            this.WebSocket.MessageReceived += this.WebSocket_MessageReceived;
-            this.WebSocket.Closed += this.WebSocket_Closed;
-        }
-
         public async Task ConnectToServer(string address)
         {
             try
             {
+                this.WebSocket = new MessageWebSocket();
+                this.WebSocket.Control.MessageType = SocketMessageType.Utf8;
+                this.WebSocket.MessageReceived += this.WebSocket_MessageReceived;
+                this.WebSocket.Closed += this.WebSocket_Closed;
                 await this.WebSocket.ConnectAsync(new Uri(address));
             }
             catch
@@ -136,7 +131,6 @@ namespace ApolloLensLibrary.Signalling
             catch (Exception ex)
             {
                 Windows.Web.WebErrorStatus webErrorStatus = WebSocketError.GetStatus(ex.GetBaseException().HResult);
-                // Add additional code here to handle exceptions.
             }
         }
 
@@ -148,6 +142,9 @@ namespace ApolloLensLibrary.Signalling
 
     public interface IBaseSignaller
     {
+        Task ConnectToServer(string address);
+        void DisconnectFromServer();
+
         Task SendIceCandidate(RTCIceCandidate iceCandidate);
         event EventHandler<RTCIceCandidate> ReceivedIceCandidate;
     }
@@ -165,9 +162,7 @@ namespace ApolloLensLibrary.Signalling
     }
 
     public interface IUISignaller
-    {
-        Task ConnectToServer(string address);
-        void DisconnectFromServer();
+    {        
         Task SendPlainMessage(string message);
         Task SendShutdown();
 

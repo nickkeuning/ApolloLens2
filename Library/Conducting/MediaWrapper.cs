@@ -189,5 +189,4 @@ namespace ApolloLensLibrary.Conducting
 
         #endregion
     }
-
 }

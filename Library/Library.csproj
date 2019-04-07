@@ -121,7 +121,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Conducting\Conductor.cs" />
-    <Compile Include="Conducting\Wrapper.cs" />
+    <Compile Include="Conducting\MediaWrapper.cs" />
     <Compile Include="Imaging\DicomNetworking.cs" />
     <Compile Include="Imaging\DicomParser.cs" />
     <Compile Include="Imaging\ImageCharacteristics.cs" />

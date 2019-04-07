@@ -8,7 +8,13 @@
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
     <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+            <ColumnDefinition 
+                Width="auto"/>
+        </Grid.ColumnDefinitions>
         <Grid
+            Grid.Column="0"            
             x:Name="ConnectionOptions">
             <StackPanel
                 x:Name="NotConnected"
@@ -50,6 +56,7 @@
             </StackPanel>
         </Grid>
         <TextBox
+            Grid.Column="1"
             x:Name="OutputTextBox"
             VerticalAlignment="Stretch"
             HorizontalAlignment="Right"

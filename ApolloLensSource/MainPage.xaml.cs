@@ -36,7 +36,7 @@ namespace ApolloLensSource
         public MainPage()
         {
             this.DataContext = this;
-            this.InitializeComponent();
+            this.InitializeComponent();            
 
             Logger.WriteMessage += async (message) =>
             {
@@ -45,21 +45,18 @@ namespace ApolloLensSource
                     this.OutputTextBox.Text += message + Environment.NewLine;
                 });
             };
+
+            Application.Current.Suspending += async (s, e) =>
+            {
+                await this.Signaller.SendShutdown();
+                await this.SourceConductor.Shutdown();
+            };
+
+            this.Signaller = this.BuildSignaller();
+            this.SourceConductor = this.BuildConductor(this.Signaller);
         }
 
-        protected override async void OnNavigatedTo(NavigationEventArgs args)
-        {
-            Logger.Log("Initializing WebRTC...");
-            this.SourceConductor = Conductor.CreateSource();
-            await this.SourceConductor.Initialize(this.Dispatcher);
-            Logger.Log("Done.");
-
-            var res = this.SourceConductor.GetCaptureProfiles();
-            this.CaptureFormatComboBox.ItemsSource = res;
-            this.CaptureFormatComboBox.SelectedIndex = 0;
-        }
-
-        private IUISignaller CreateSignaller()
+        private IUISignaller BuildSignaller()
         {
             var signaller = WebSocketSignaller.CreateSignaller();
 
@@ -82,16 +79,28 @@ namespace ApolloLensSource
             return signaller;
         }
 
+        private ISourceConductor BuildConductor(IUISignaller signaller)
+        {
+            return new SourceConductor(signaller as ISourceSignaller);
+        }
+
+        protected override async void OnNavigatedTo(NavigationEventArgs args)
+        {
+            Logger.Log("Initializing WebRTC...");
+            await this.SourceConductor.Initialize(this.Dispatcher);
+            Logger.Log("Done.");
+
+            var profiles = this.SourceConductor.GetCaptureProfiles();
+            this.CaptureFormatComboBox.ItemsSource = profiles;
+            this.CaptureFormatComboBox.SelectedIndex = 0;
+        }
+
         #region UI_Handlers
 
         private async void ConnectToServer_Click(object sender, RoutedEventArgs e)
         {
             this.NotConnected.ToggleVisibility();
-
-            this.Signaller = this.CreateSignaller();
-            await this.Signaller.ConnectToServer(this.ServerAddress);
-            this.SourceConductor.SetSignaller(this.Signaller as ISourceSignaller);
-
+            await this.SourceConductor.Signaller.ConnectToServer(this.ServerAddress);
             this.Connected.ToggleVisibility();
         }
 
@@ -105,9 +114,7 @@ namespace ApolloLensSource
         private void DisconnectFromServerButton_Click(object sender, RoutedEventArgs e)
         {
             this.Connected.ToggleVisibility();
-
-            this.Signaller.DisconnectFromServer();
-
+            this.SourceConductor.Signaller.DisconnectFromServer();
             this.NotConnected.ToggleVisibility();
         }
 

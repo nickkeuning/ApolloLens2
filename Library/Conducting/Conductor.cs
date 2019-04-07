@@ -11,40 +11,22 @@ using ApolloLensLibrary.Signalling;
 
 namespace ApolloLensLibrary.Conducting
 {
-    public class Conductor : IBaseConductor, IClientConductor, ISourceConductor
+    public abstract class Conductor : IBaseConductor
     {
         #region Properties
 
-        private MediaWrapper MediaWrapper { get; }
-        private RTCPeerConnection PeerConnection { get; set; }
-        private List<RTCIceCandidate> IceCandidates { get; } = new List<RTCIceCandidate>();
-        private MediaElement RemoteVideo { get; set; }
-        private IBaseSignaller Signaller { get; set; }
+        protected MediaWrapper MediaWrapper { get; }
+        protected RTCPeerConnection PeerConnection { get; set; }
+        protected List<RTCIceCandidate> IceCandidates { get; } = new List<RTCIceCandidate>();
+        protected MediaElement RemoteVideo { get; set; }
+        public IBaseSignaller Signaller { get; protected set; }
 
         #endregion
 
-        #region Creation
-
-        public static IClientConductor CreateClient(MediaElement remoteVideo)
-        {
-            var conductor = new Conductor();
-            conductor.RemoteVideo = remoteVideo;
-            return conductor;
-        }
-
-        public static ISourceConductor CreateSource()
-        {
-            return new Conductor();
-        }
-
-        private Conductor()
+        protected Conductor()
         {
             this.MediaWrapper = MediaWrapper.Instance;
         }
-
-        #endregion
-
-        #region Base
 
         public async Task Initialize(CoreDispatcher coreDispatcher)
         {
@@ -57,14 +39,55 @@ namespace ApolloLensLibrary.Conducting
             await this.MediaWrapper.DestroyRemoteMedia();
         }
 
-        #endregion
+        #region Utility
 
-        #region Client
-
-        public event EventHandler RemoteStreamAdded;
-
-        public void SetSignaller(IClientSignaller signaller)
+        protected IBaseSignaller InitializeSignaller(IBaseSignaller signaller)
         {
+            signaller.ReceivedIceCandidate += async (s, candidate) =>
+            {
+                await this.PeerConnection?.AddIceCandidate(candidate);
+            };
+
+            return signaller;
+        }
+
+        protected RTCPeerConnection CreatePeerConnection()
+        {
+            var connection = new RTCPeerConnection(
+                new RTCConfiguration()
+                {
+                    BundlePolicy = RTCBundlePolicy.Balanced,
+                    IceTransportPolicy = RTCIceTransportPolicy.All
+                }
+            );
+
+            connection.OnIceCandidate += (Event) =>
+            {
+                this.IceCandidates.Add(Event.Candidate);
+            };
+
+            return connection;
+        }
+
+        protected async Task SubmitIceCandidatesAsync()
+        {
+            var Complete = RTCIceGatheringState.Complete;
+            await Task.Run(() => SpinWait.SpinUntil(() => this.PeerConnection?.IceGatheringState == Complete));
+            foreach (var candidate in this.IceCandidates)
+            {
+                await this.Signaller.SendIceCandidate(candidate);
+            }
+        }
+
+        #endregion
+    }
+
+    public class ClientConductor : Conductor, IClientConductor
+    {
+        public ClientConductor(IClientSignaller signaller, MediaElement remoteVideo) : base()
+        {
+            this.RemoteVideo = remoteVideo;
+
             signaller.ReceivedAnswer += async (s, remoteDescription) =>
             {
                 await this.PeerConnection?.SetRemoteDescription(remoteDescription);
@@ -73,6 +96,8 @@ namespace ApolloLensLibrary.Conducting
             };
             this.Signaller = this.InitializeSignaller(signaller);
         }
+
+        public event EventHandler RemoteStreamAdded;
 
         public async Task ConnectToSource()
         {
@@ -83,8 +108,8 @@ namespace ApolloLensLibrary.Conducting
                 if (remoteVideoTrack != null)
                 {
                     await this.MediaWrapper.BindRemoteVideo(remoteVideoTrack, this.RemoteVideo);
+                    this.RemoteStreamAdded?.Invoke(this, EventArgs.Empty);
                 }
-                this.RemoteStreamAdded?.Invoke(this, EventArgs.Empty);
             };
 
             // Attach local media to new connection
@@ -102,12 +127,11 @@ namespace ApolloLensLibrary.Conducting
             // Destroy local media since we're the caller
             await this.MediaWrapper.DestroyLocalMedia();
         }
+    }
 
-        #endregion
-
-        #region Source
-
-        public void SetSignaller(ISourceSignaller signaller)
+    public class SourceConductor : Conductor, ISourceConductor
+    {
+        public SourceConductor(ISourceSignaller signaller) : base()
         {
             signaller.ReceivedOffer += async (s, offer) =>
             {
@@ -129,7 +153,7 @@ namespace ApolloLensLibrary.Conducting
             };
             this.Signaller = this.InitializeSignaller(signaller);
         }
-
+    
         IList<MediaWrapper.CaptureProfile> ISourceConductor.GetCaptureProfiles()
         {
             return this.MediaWrapper.CaptureProfiles;
@@ -139,54 +163,11 @@ namespace ApolloLensLibrary.Conducting
         {
             this.MediaWrapper.SetSelectedProfile(captureProfile);
         }
-
-        #endregion
-
-        #region Utility
-
-        private IBaseSignaller InitializeSignaller(IBaseSignaller signaller)
-        {
-            signaller.ReceivedIceCandidate += async (s, candidate) =>
-            {
-                await this.PeerConnection?.AddIceCandidate(candidate);
-            };
-
-            return signaller;
-        }
-
-        private RTCPeerConnection CreatePeerConnection()
-        {
-            var connection = new RTCPeerConnection(
-                new RTCConfiguration()
-                {
-                    BundlePolicy = RTCBundlePolicy.Balanced,
-                    IceTransportPolicy = RTCIceTransportPolicy.All
-                }
-            );
-
-            connection.OnIceCandidate += (Event) =>
-            {
-                this.IceCandidates.Add(Event.Candidate);
-            };
-
-            return connection;
-        }
-
-        private async Task SubmitIceCandidatesAsync()
-        {
-            var Complete = RTCIceGatheringState.Complete;
-            await Task.Run(() => SpinWait.SpinUntil(() => this.PeerConnection?.IceGatheringState == Complete));
-            foreach (var candidate in this.IceCandidates)
-            {
-                await this.Signaller.SendIceCandidate(candidate);
-            }
-        }
-
-        #endregion
     }
 
     public interface IBaseConductor
     {
+        IBaseSignaller Signaller { get; }
         Task Initialize(CoreDispatcher coreDispatcher);
         Task Shutdown();
     }
@@ -194,14 +175,11 @@ namespace ApolloLensLibrary.Conducting
     public interface IClientConductor : IBaseConductor
     {
         event EventHandler RemoteStreamAdded;
-
-        void SetSignaller(IClientSignaller signaller);
         Task ConnectToSource();
     }
 
     public interface ISourceConductor : IBaseConductor
     {
-        void SetSignaller(ISourceSignaller signaller);
         IList<MediaWrapper.CaptureProfile> GetCaptureProfiles();
         void SetSelectedProfile(MediaWrapper.CaptureProfile captureProfile);
     }

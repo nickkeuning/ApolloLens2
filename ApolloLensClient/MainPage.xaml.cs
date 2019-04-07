@@ -32,7 +32,7 @@ namespace ApolloLensClient
         private string CustomServerSettingsKey { get; } = "CustomServerAddress";
         public string CustomAddress { get; set; }
 
-        private string ServerAddress => this.ConnectAzure ? ServerConfig.AwsAddress : $"ws://{this.CustomAddress}/";
+        private string ServerAddress => this.ConnectAzure ? ServerConfig.AwsAddress : $"ws://{this.CustomAddress}:8080/";
 
         private IClientConductor ClientConductor { get; }
         private IUISignaller Signaller { get; }
@@ -41,10 +41,6 @@ namespace ApolloLensClient
         {
             this.DataContext = this;
             this.InitializeComponent();
-            Application.Current.Suspending += async (s, e) =>
-            {
-                await this.ClientConductor.Shutdown();
-            };
 
             Logger.WriteMessage += async (message) =>
             {
@@ -54,11 +50,14 @@ namespace ApolloLensClient
                 });
             };
 
-            this.ClientConductor = Conductor.CreateClient(this.RemoteVideo);
-            this.InitializeConductor();
+            Application.Current.Suspending += async (s, e) =>
+            {
+                await this.Signaller.SendShutdown();
+                await this.ClientConductor.Shutdown();
+            };            
 
-            this.Signaller = WebSocketSignaller.CreateSignaller();
-            this.InitializeSignaller();
+            this.Signaller = this.BuildSignaller();
+            this.ClientConductor = this.BuildConductor(this.Signaller);
 
             if (!ApplicationData.Current.LocalSettings.Values.TryGetValue(this.CustomServerSettingsKey, out object value))
             {
@@ -67,31 +66,38 @@ namespace ApolloLensClient
             this.CustomAddress = (string)value;
         }
 
-        private void InitializeSignaller()
+        private IUISignaller BuildSignaller()
         {
-            this.Signaller.ConnectionFailed += (s, a) =>
+            var signaller = WebSocketSignaller.CreateSignaller();
+
+            signaller.ConnectionFailed += (s, a) =>
             {
                 Logger.Log("Connecting to signalling server failed. Try again.");
             };
 
-            this.Signaller.ReceivedPlainMessage += (s, a) =>
+            signaller.ReceivedPlainMessage += (s, a) =>
             {
                 Logger.Log($"Received plain message: {a}");
             };
 
-            this.Signaller.ReceivedShutdown += async (s, a) =>
+            signaller.ReceivedShutdown += async (s, a) =>
             {
                 Logger.Log("Received shutdown message from peer.");
                 await this.ClientConductor.Shutdown();
             };
+
+            return signaller;
         }
 
-        private void InitializeConductor()
+        private IClientConductor BuildConductor(IUISignaller signaller)
         {
-            this.ClientConductor.RemoteStreamAdded += (s, a) =>
+            var conductor = new ClientConductor(signaller as IClientSignaller, this.RemoteVideo);
+            conductor.RemoteStreamAdded += (s, a) =>
             {
                 this.NotInCall.ToggleVisibility();
             };
+
+            return conductor;
         }
 
 
@@ -100,13 +106,7 @@ namespace ApolloLensClient
         private async void ServerConnectButton_Click(object sender, RoutedEventArgs e)
         {
             this.StartupSettings.ToggleVisibility();
-
-            Logger.Log("Connecting to signalling server...");
-
-            await this.Signaller.ConnectToServer(this.ServerAddress);
-
-            Logger.Log("Connected to signalling server.");
-
+            await this.ClientConductor.Signaller.ConnectToServer(this.ServerAddress);
             this.ConnectedOptions.ToggleVisibility();
         }
 
@@ -120,7 +120,6 @@ namespace ApolloLensClient
         private async void SourceConnectButton_Click(object sender, RoutedEventArgs e)
         {
             Logger.Log("Initializing WebRTC...");
-            this.ClientConductor.SetSignaller(this.Signaller as IClientSignaller);
             await this.ClientConductor.Initialize(this.Dispatcher);
             Logger.Log("Done.");
 

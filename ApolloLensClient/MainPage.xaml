@@ -10,8 +10,14 @@
     <Grid>
         <Grid
             x:Name="NotInCall">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition
+                    Width="auto" />
+            </Grid.ColumnDefinitions>
             <StackPanel
                 x:Name="StartupSettings"
+                Grid.Column="0"
                 Visibility="Visible"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Center"
@@ -37,6 +43,7 @@
             </StackPanel>
             <StackPanel
                 x:Name="ConnectedOptions"
+                Grid.Column="0"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Center"
                 Orientation="Horizontal"
@@ -53,7 +60,7 @@
                     Margin="12" />
             </StackPanel>
             <TextBox
-                Grid.Column="2"
+                Grid.Column="1"
                 x:Name="OutputTextBox"
                 VerticalAlignment="Stretch"
                 HorizontalAlignment="Right"
@@ -68,6 +75,5 @@
             Grid.Column="1"
             HorizontalAlignment="Stretch"
             RealTimePlayback="True" />
-
     </Grid>
 </Page>

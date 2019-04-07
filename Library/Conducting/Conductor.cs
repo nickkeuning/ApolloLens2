@@ -23,8 +23,9 @@ namespace ApolloLensLibrary.Conducting
 
         #endregion
 
-        protected Conductor()
+        protected Conductor(IBaseSignaller signaller)
         {
+            this.Signaller = this.InitializeSignaller(signaller);
             this.MediaWrapper = MediaWrapper.Instance;
         }
 
@@ -84,7 +85,10 @@ namespace ApolloLensLibrary.Conducting
 
     public class ClientConductor : Conductor, IClientConductor
     {
-        public ClientConductor(IClientSignaller signaller, MediaElement remoteVideo) : base()
+        private new IClientSignaller Signaller { get; }
+
+        public ClientConductor(IClientSignaller signaller, MediaElement remoteVideo) 
+            : base(signaller)
         {
             this.RemoteVideo = remoteVideo;
 
@@ -94,7 +98,8 @@ namespace ApolloLensLibrary.Conducting
                 await this.SubmitIceCandidatesAsync();
                 Logger.Log("Answer received...");
             };
-            this.Signaller = this.InitializeSignaller(signaller);
+
+            this.Signaller = signaller;
         }
 
         public event EventHandler RemoteStreamAdded;
@@ -119,7 +124,7 @@ namespace ApolloLensLibrary.Conducting
             // Perform the caller half of the WebRtc connection handshake
             var localDescription = await this.PeerConnection.CreateOffer();
             await this.PeerConnection.SetLocalDescription(localDescription);
-            await (this.Signaller as IClientSignaller).SendOffer(localDescription);
+            await this.Signaller.SendOffer(localDescription);
             Logger.Log("Offer sent...");
 
             await this.SubmitIceCandidatesAsync();
@@ -131,7 +136,9 @@ namespace ApolloLensLibrary.Conducting
 
     public class SourceConductor : Conductor, ISourceConductor
     {
-        public SourceConductor(ISourceSignaller signaller) : base()
+        private new ISourceSignaller Signaller { get; }
+
+        public SourceConductor(ISourceSignaller signaller) : base(signaller)
         {
             signaller.ReceivedOffer += async (s, offer) =>
             {
@@ -146,12 +153,13 @@ namespace ApolloLensLibrary.Conducting
                 var answer = await this.PeerConnection.CreateAnswer();
                 await this.PeerConnection.SetLocalDescription(answer);
 
-                await (this.Signaller as ISourceSignaller).SendAnswer(answer);
+                await this.Signaller.SendAnswer(answer);
                 await this.SubmitIceCandidatesAsync();
 
                 Logger.Log("Sent answer...");
             };
-            this.Signaller = this.InitializeSignaller(signaller);
+
+            this.Signaller = signaller;
         }
     
         IList<MediaWrapper.CaptureProfile> ISourceConductor.GetCaptureProfiles()

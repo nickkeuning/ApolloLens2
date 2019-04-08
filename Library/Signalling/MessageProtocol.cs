@@ -6,17 +6,16 @@ namespace ApolloLensLibrary.Signalling
 {
     public static class MessageProtocol
     {
-        private static string MessageTypeKeyName { get; } = "MessageType";
-        private static string MessageContentsKeyName { get; } = "MessageContents";
-        public static readonly string AwsAddress = "http://apollosignaller-env.p47zti3ztv.us-east-2.elasticbeanstalk.com/";
+        private static string MessageTypeKey { get; } = "MessageType";
+        private static string MessageContentsKey { get; } = "MessageContents";
 
         public static string WrapMessage(string messageContents, MessageType messageType)
         {
             var messageTypeSerialized = JsonConvert.SerializeObject(messageType);
             JsonObject keyValuePairs = new JsonObject()
             {
-                { MessageProtocol.MessageTypeKeyName, JsonValue.CreateStringValue(messageTypeSerialized) },
-                { MessageProtocol.MessageContentsKeyName, JsonValue.CreateStringValue(messageContents ?? "") }
+                { MessageProtocol.MessageTypeKey, JsonValue.CreateStringValue(messageTypeSerialized) },
+                { MessageProtocol.MessageContentsKey, JsonValue.CreateStringValue(messageContents ?? "") }
             };
             return keyValuePairs.Stringify();
         }

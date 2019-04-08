@@ -37,6 +37,7 @@ namespace ApolloLensBasic
             await this.Wrapper.Initialize(this.Dispatcher);
             var res = this.Wrapper.CaptureProfiles;
             this.CaptureFormatComboBox.ItemsSource = res;
+            this.CaptureFormatComboBox.SelectedIndex = 0;
         }
 
         private void ToggleVisibilities()
@@ -57,7 +58,7 @@ namespace ApolloLensBasic
         private async void HideVideo_Click(object sender, RoutedEventArgs e)
         {
             this.ToggleVisibilities();
-            await this.Wrapper.DestroyAllMedia();
+            await this.Wrapper.DestroyLocalMedia();
         }
 
         private void CaptureFormatComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)

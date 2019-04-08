@@ -34,8 +34,7 @@ namespace ApolloLensClient
 
         private string ServerAddress => this.ConnectAzure ? ServerConfig.AwsAddress : $"ws://{this.CustomAddress}:8080/";
 
-        private IClientConductor ClientConductor { get; }
-        private IUISignaller Signaller { get; }
+        private ICallerConductor Conductor { get; }
 
         public MainPage()
         {
@@ -52,12 +51,11 @@ namespace ApolloLensClient
 
             Application.Current.Suspending += async (s, e) =>
             {
-                await this.Signaller.SendShutdown();
-                await this.ClientConductor.Shutdown();
+                await this.Conductor.Signaller.SendShutdown();
+                await this.Conductor.Shutdown();
             };            
 
-            this.Signaller = this.BuildSignaller();
-            this.ClientConductor = this.BuildConductor(this.Signaller);
+            this.Conductor = this.BuildConductor();
 
             if (!ApplicationData.Current.LocalSettings.Values.TryGetValue(this.CustomServerSettingsKey, out object value))
             {
@@ -66,7 +64,7 @@ namespace ApolloLensClient
             this.CustomAddress = (string)value;
         }
 
-        private IUISignaller BuildSignaller()
+        private ISignaller BuildSignaller()
         {
             var signaller = WebSocketSignaller.CreateSignaller();
 
@@ -83,15 +81,17 @@ namespace ApolloLensClient
             signaller.ReceivedShutdown += async (s, a) =>
             {
                 Logger.Log("Received shutdown message from peer.");
-                await this.ClientConductor.Shutdown();
+                await this.Conductor.Shutdown();
             };
 
             return signaller;
         }
 
-        private IClientConductor BuildConductor(IUISignaller signaller)
+        private ICallerConductor BuildConductor()
         {
-            var conductor = new ClientConductor(signaller as IClientSignaller, this.RemoteVideo);
+            var signaller = this.BuildSignaller();
+            var conductor = new CallerConductor(signaller, this.RemoteVideo);
+
             conductor.RemoteStreamAdded += (s, a) =>
             {
                 this.NotInCall.ToggleVisibility();
@@ -106,25 +106,25 @@ namespace ApolloLensClient
         private async void ServerConnectButton_Click(object sender, RoutedEventArgs e)
         {
             this.StartupSettings.ToggleVisibility();
-            await this.ClientConductor.Signaller.ConnectToServer(this.ServerAddress);
+            await this.Conductor.Signaller.ConnectToServer(this.ServerAddress);
             this.ConnectedOptions.ToggleVisibility();
         }
 
         private async void SayHiButton_Click(object sender, RoutedEventArgs e)
         {
             var message = "Hello, World!";
-            await this.Signaller.SendPlainMessage(message);
+            await this.Conductor.Signaller.SendPlainMessage(message);
             Logger.Log($"Sent {message} to any connected peers");
         }
 
         private async void SourceConnectButton_Click(object sender, RoutedEventArgs e)
         {
             Logger.Log("Initializing WebRTC...");
-            await this.ClientConductor.Initialize(this.Dispatcher);
+            await this.Conductor.Initialize(this.Dispatcher);
             Logger.Log("Done.");
 
             Logger.Log("Starting connection to source...");
-            await this.ClientConductor.ConnectToSource();
+            await this.Conductor.StartCall();
         }
 
         private void CustomServerAddressBox_SelectionChanged(object sender, RoutedEventArgs e)

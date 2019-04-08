@@ -12,7 +12,7 @@ namespace ApolloLensLibrary.Conducting
     public sealed class MediaWrapper
     {
         #region Singleton
-    
+
         public static MediaWrapper Instance { get { return MediaWrapper.instance; } }
         private static readonly MediaWrapper instance = new MediaWrapper();
 
@@ -85,8 +85,7 @@ namespace ApolloLensLibrary.Conducting
                     this.media.RemoveVideoTrackMediaElementPair(this.RemoteVideoTrack);
                 });
                 this.RemoteVideoTrack = null;
-                GC.Collect();
-            }            
+            }
         }
 
         #endregion
@@ -140,8 +139,6 @@ namespace ApolloLensLibrary.Conducting
                 });
                 this.LocalVideoTrack = null;
             }
-
-            GC.Collect();
         }
 
         #endregion

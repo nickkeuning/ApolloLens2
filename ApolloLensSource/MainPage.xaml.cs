@@ -30,8 +30,8 @@ namespace ApolloLensSource
         public bool ConnectAzure { get; set; } = true;
 
         private string ServerAddress => this.ConnectAzure ? ServerConfig.AwsAddress : ServerConfig.LocalAddress;
-        private ISourceConductor SourceConductor { get; set; }
-        private IUISignaller Signaller { get; set; }
+
+        private ICalleeConductor Conductor { get; }
 
         public MainPage()
         {
@@ -48,15 +48,14 @@ namespace ApolloLensSource
 
             Application.Current.Suspending += async (s, e) =>
             {
-                await this.Signaller.SendShutdown();
-                await this.SourceConductor.Shutdown();
+                await this.Conductor.Signaller.SendShutdown();
+                await this.Conductor.Shutdown();
             };
 
-            this.Signaller = this.BuildSignaller();
-            this.SourceConductor = this.BuildConductor(this.Signaller);
+            this.Conductor = this.BuildConductor();
         }
 
-        private IUISignaller BuildSignaller()
+        private ISignaller BuildSignaller()
         {
             var signaller = WebSocketSignaller.CreateSignaller();
 
@@ -73,24 +72,25 @@ namespace ApolloLensSource
             signaller.ReceivedShutdown += async (s, a) =>
             {
                 Logger.Log("Received shutdown message from peer.");
-                await this.SourceConductor.Shutdown();
+                await this.Conductor.Shutdown();
             };
 
             return signaller;
         }
 
-        private ISourceConductor BuildConductor(IUISignaller signaller)
+        private ICalleeConductor BuildConductor()
         {
-            return new SourceConductor(signaller as ISourceSignaller);
+            var signaller = this.BuildSignaller();
+            return new CalleeConductor(signaller);
         }
 
         protected override async void OnNavigatedTo(NavigationEventArgs args)
         {
             Logger.Log("Initializing WebRTC...");
-            await this.SourceConductor.Initialize(this.Dispatcher);
+            await this.Conductor.Initialize(this.Dispatcher);
             Logger.Log("Done.");
 
-            var profiles = this.SourceConductor.GetCaptureProfiles();
+            var profiles = this.Conductor.GetCaptureProfiles();
             this.CaptureFormatComboBox.ItemsSource = profiles;
             this.CaptureFormatComboBox.SelectedIndex = 0;
         }
@@ -100,28 +100,28 @@ namespace ApolloLensSource
         private async void ConnectToServer_Click(object sender, RoutedEventArgs e)
         {
             this.NotConnected.ToggleVisibility();
-            await this.SourceConductor.Signaller.ConnectToServer(this.ServerAddress);
+            await this.Conductor.Signaller.ConnectToServer(this.ServerAddress);
             this.Connected.ToggleVisibility();
         }
 
         private async void SayHiButton_Click(object sender, RoutedEventArgs e)
         {
             var message = "Hello, World!";
-            await this.Signaller.SendPlainMessage(message);
+            await this.Conductor.Signaller.SendPlainMessage(message);
             Logger.Log($"Send message: {message} to connected peers");
         }
 
         private void DisconnectFromServerButton_Click(object sender, RoutedEventArgs e)
         {
             this.Connected.ToggleVisibility();
-            this.SourceConductor.Signaller.DisconnectFromServer();
+            this.Conductor.Signaller.DisconnectFromServer();
             this.NotConnected.ToggleVisibility();
         }
 
         private void CaptureFormatComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             var selectedProfile = (this.CaptureFormatComboBox.SelectedItem as MediaWrapper.CaptureProfile);
-            this.SourceConductor.SetSelectedProfile(selectedProfile);
+            this.Conductor.SetSelectedProfile(selectedProfile);
         }
 
         #endregion

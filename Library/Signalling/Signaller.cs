@@ -8,7 +8,7 @@ using MessageType = ApolloLensLibrary.Signalling.MessageProtocol.MessageType;
 
 namespace ApolloLensLibrary.Signalling
 {
-    public class WebSocketSignaller : IClientSignaller, ISourceSignaller, IUISignaller
+    public class WebSocketSignaller : ISignaller
     {
         public event EventHandler<RTCSessionDescription> ReceivedOffer;
         public event EventHandler<RTCSessionDescription> ReceivedAnswer;
@@ -19,7 +19,7 @@ namespace ApolloLensLibrary.Signalling
 
         private MessageWebSocket WebSocket { get; set; }
 
-        public static IUISignaller CreateSignaller()
+        public static ISignaller CreateSignaller()
         {
             return new WebSocketSignaller();
         }
@@ -43,7 +43,7 @@ namespace ApolloLensLibrary.Signalling
         public void DisconnectFromServer()
         {
             this.WebSocket.Close(1000, "");
-        }        
+        }
 
         public async Task SendPlainMessage(string messageContents)
         {
@@ -75,6 +75,9 @@ namespace ApolloLensLibrary.Signalling
 
         private async Task SendMessage(string message, MessageType messageType)
         {
+            if (this.WebSocket == null)
+                return;
+
             var wrappedMessage = MessageProtocol.WrapMessage(message, messageType);
 
             using (var dataWriter = new DataWriter(this.WebSocket.OutputStream))
@@ -137,37 +140,29 @@ namespace ApolloLensLibrary.Signalling
         private void WebSocket_Closed(IWebSocket sender, WebSocketClosedEventArgs args)
         {
             this.WebSocket.Dispose();
+            this.WebSocket = null;
         }
     }
 
-    public interface IBaseSignaller
+    public interface ISignaller
     {
+        // Connection
         Task ConnectToServer(string address);
         void DisconnectFromServer();
+        event EventHandler ConnectionFailed;
 
-        Task SendIceCandidate(RTCIceCandidate iceCandidate);
+        // Message received events
+        event EventHandler ReceivedShutdown;
+        event EventHandler<string> ReceivedPlainMessage;
         event EventHandler<RTCIceCandidate> ReceivedIceCandidate;
-    }
-
-    public interface IClientSignaller : IBaseSignaller
-    {
-        Task SendOffer(RTCSessionDescription offer);
         event EventHandler<RTCSessionDescription> ReceivedAnswer;
-    }
-
-    public interface ISourceSignaller : IBaseSignaller
-    {
-        Task SendAnswer(RTCSessionDescription answer);
         event EventHandler<RTCSessionDescription> ReceivedOffer;
-    }
 
-    public interface IUISignaller
-    {        
+        // Send message methods
         Task SendPlainMessage(string message);
         Task SendShutdown();
-
-        event EventHandler<string> ReceivedPlainMessage;
-        event EventHandler ReceivedShutdown;
-        event EventHandler ConnectionFailed;
+        Task SendIceCandidate(RTCIceCandidate iceCandidate);
+        Task SendOffer(RTCSessionDescription offer);
+        Task SendAnswer(RTCSessionDescription answer);
     }
 }

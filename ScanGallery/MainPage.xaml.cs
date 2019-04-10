@@ -48,7 +48,7 @@ namespace ScanGallery
         public Array Stretches { get; } = Enum.GetNames(typeof(Stretch));
 
         public IEnumerable<string> SeriesNamesItems => 
-            this.ImageCollection?.GetSeriesNames().Select((s, i) => { return $"{i + 1}. {s}"; });
+            this.ImageCollection?.GetSeriesNames().Select((s, i) => $"{i + 1}. {s}");
 
         public SoftwareBitmapSource SoftwareBitmapSource { get; set; }
 
@@ -207,7 +207,7 @@ namespace ScanGallery
         {
             var series = this.ImageCollection
                 .GetSeriesNames()
-                .ElementAtOrDefault(this.SeriesSelect.SelectedIndex);
+                .ElementAt(this.SeriesSelect.SelectedIndex);
 
             this.ImageCollection.SetCurrentSeries(series);
             this.Slider.Maximum = this.ImageCollection.GetCurrentSeriesSize() - 1;
@@ -310,7 +310,7 @@ namespace ScanGallery
 
         private void AddSeriesCommands()
         {
-            var nums = Util.Range(this.ImageCollection.GetSeriesNames().Count);
+            var nums = Util.Range(this.ImageCollection.GetSeriesNames().Count());
             var commands = nums
                 .Select(num => $"series {num + 1}")
                 .ToList();

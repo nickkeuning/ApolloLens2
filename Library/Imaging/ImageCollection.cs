@@ -86,9 +86,9 @@ namespace ApolloLensLibrary.Imaging
             this.Images[seriesName][position] = smartBitmap;
         }
 
-        public IList<string> GetSeriesNames()
+        public IEnumerable<string> GetSeriesNames()
         {
-            return this.Images.Keys.ToList();
+            return this.Images.Keys.AsEnumerable();
         }
 
         public int GetCurrentSeriesSize()
@@ -215,7 +215,7 @@ namespace ApolloLensLibrary.Imaging
         void AddImageToSeries(byte[] image, string seriesName, int position, int width, int height);
 
         // Series info
-        IList<string> GetSeriesNames();
+        IEnumerable<string> GetSeriesNames();
         int GetCurrentSeriesSize();
 
         // Change series

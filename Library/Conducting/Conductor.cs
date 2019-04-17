@@ -133,6 +133,7 @@ namespace ApolloLensLibrary.Conducting
 
             // Destroy local media since we're the caller
             await this.MediaWrapper.DestroyLocalMedia();
+            GC.Collect();
         }
     }
 

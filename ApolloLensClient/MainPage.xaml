@@ -22,21 +22,8 @@
                 VerticalAlignment="Center"
                 HorizontalAlignment="Center"
                 Orientation="Horizontal">
-                <ToggleSwitch
-                    x:Name="RemoteServerToggle"
-                    Margin="12"
-                    IsOn="{Binding ConnectAzure, Mode=TwoWay}"
-                    Toggled="RemoteServerToggle_Toggled">Connect to Azure</ToggleSwitch>
-                <TextBox
-                    x:Name="CustomServerAddressBox"
-                    VerticalAlignment="Center"
-                    Text="{Binding CustomAddress, Mode=TwoWay}"
-                    SelectionChanged="CustomServerAddressBox_SelectionChanged"
-                    PlaceholderText="Custom Signalling Server IP"
-                    Margin="12" />
                 <Button
                     x:Name="ServerConnectButton"
-                    Click="ServerConnectButton_Click"
                     Content="Connect to Signalling Server"
                     HorizontalAlignment="Stretch"
                     Margin="12" />

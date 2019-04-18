@@ -160,6 +160,10 @@
       <Project>{8b04d808-dea4-4fba-96d6-ea69ea93920c}</Project>
       <Name>Library</Name>
     </ProjectReference>
+    <ProjectReference Include="..\WebRtcImplOld\WebRtcImplOld.csproj">
+      <Project>{f0e1730d-f5e6-43f9-bfd2-cf252daf5960}</Project>
+      <Name>WebRtcImplOld</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Connected Services\" />

@@ -4,23 +4,23 @@ using Windows.Data.Json;
 
 namespace ApolloLensLibrary.Signalling
 {
-    public static class MessageProtocol
+    public class MessageProtocol<T> where T : Enum
     {
-        private static string MessageTypeKey { get; } = "MessageType";
-        private static string MessageContentsKey { get; } = "MessageContents";
+        private string MessageTypeKey { get; } = "MessageType";
+        private string MessageContentsKey { get; } = "MessageContents";
 
-        public static string WrapMessage(string messageContents, MessageType messageType)
+        public string WrapMessage(T type, string contents)
         {
-            var messageTypeSerialized = JsonConvert.SerializeObject(messageType);
+            var messageTypeSerialized = JsonConvert.SerializeObject(type);
             JsonObject keyValuePairs = new JsonObject()
             {
-                { MessageProtocol.MessageTypeKey, JsonValue.CreateStringValue(messageTypeSerialized) },
-                { MessageProtocol.MessageContentsKey, JsonValue.CreateStringValue(messageContents ?? "") }
+                { this.MessageTypeKey, JsonValue.CreateStringValue(messageTypeSerialized) },
+                { this.MessageContentsKey, JsonValue.CreateStringValue(contents ?? "") }
             };
             return keyValuePairs.Stringify();
         }
 
-        public static RtcSignallingMessage UnwrapMessage(string rawMessageJson)
+        public Message<T> UnwrapMessage(string rawMessageJson)
         {
             if (!JsonObject.TryParse(rawMessageJson, out JsonObject messageJsonObject))
             {
@@ -37,30 +37,21 @@ namespace ApolloLensLibrary.Signalling
                 throw new ArgumentException();
             }
 
-            var messageType = JsonConvert.DeserializeObject<MessageType>(messageTypeJsonValue.GetString());
+            var messageType = JsonConvert.DeserializeObject<T>(messageTypeJsonValue.GetString());
             var messageContents = messageContentsJsonValue.GetString();
-            return new RtcSignallingMessage(messageType, messageContents);
+            return new Message<T>(messageType, messageContents);
         }
+    }
 
-        public enum MessageType
+    public class Message<T> where T : Enum
+    {
+        public T Type { get; }
+        public string Contents { get; }
+
+        public Message(T type, string contents)
         {
-            Offer,
-            Answer,
-            IceCandidate,
-            Plain,
-            Shutdown
-        }
-
-        public class RtcSignallingMessage
-        {
-            public MessageType Type { get; }
-            public string Contents { get; }
-
-            public RtcSignallingMessage(MessageType type, string contents)
-            {
-                this.Type = type;
-                this.Contents = contents;
-            }
+            this.Type = type;
+            this.Contents = contents;
         }
     }
 }

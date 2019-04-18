@@ -12,8 +12,9 @@ using Windows.UI.Xaml.Data;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
-using ApolloLensLibrary.Conducting;
 using ApolloLensLibrary.Utilities;
+using WebRtcImplOld;
+using ApolloLensLibrary.WebRtc;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -24,18 +25,32 @@ namespace ApolloLensBasic
     /// </summary>
     public sealed partial class MainPage : Page
     {
-        private MediaWrapper Wrapper { get; }
+        //private MediaWrapper Wrapper { get; }
+        private IConductor conductor { get; } = Conductor.Instance;
 
         public MainPage()
         {
             this.InitializeComponent();
-            this.Wrapper = MediaWrapper.Instance;
         }
 
         protected override async void OnNavigatedTo(NavigationEventArgs args)
         {
-            await this.Wrapper.Initialize(this.Dispatcher);
-            var res = this.Wrapper.CaptureProfiles;
+            var config = new ConductorConfig()
+            {
+                CoreDispatcher = this.Dispatcher,
+                LocalVideo = this.LocalVideo
+            };
+
+            await this.conductor.Initialize(config);
+
+            var opts = new MediaOptions(
+                new MediaOptions.Init()
+                {
+                    LocalLoopback = true
+                });
+            this.conductor.SetMediaOptions(opts);
+
+            var res = this.conductor.CaptureProfiles;
             this.CaptureFormatComboBox.ItemsSource = res;
             this.CaptureFormatComboBox.SelectedIndex = 0;
         }
@@ -50,21 +65,20 @@ namespace ApolloLensBasic
 
         private async void ShowVideo_Click(object sender, RoutedEventArgs e)
         {
-            await this.Wrapper.LoadLocalMedia();
-            await this.Wrapper.BindLocalVideo(this.LocalVideo);
+            await this.conductor.StartCall();
             this.ToggleVisibilities();
         }
 
         private async void HideVideo_Click(object sender, RoutedEventArgs e)
         {
+            await this.conductor.Shutdown();
             this.ToggleVisibilities();
-            await this.Wrapper.DestroyLocalMedia();
         }
 
         private void CaptureFormatComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var selectedProfile = (this.CaptureFormatComboBox.SelectedItem as MediaWrapper.CaptureProfile);
-            this.Wrapper.SetSelectedProfile(selectedProfile);
+            var selectedProfile = (this.CaptureFormatComboBox.SelectedItem as CaptureProfile);
+            this.conductor.SetSelectedProfile(selectedProfile);
         }
     }
 }

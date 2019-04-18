@@ -12,10 +12,13 @@ using Windows.UI.Xaml.Data;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
-using ApolloLensLibrary.Conducting;
+//using ApolloLensLibrary.Conducting;
 using ApolloLensLibrary.Utilities;
-using ApolloLensLibrary.Signalling;
+//using ApolloLensLibrary.Signalling;
 using Windows.UI.Core;
+using ApolloLensLibrary.WebRtc;
+using WebRtcImplOld;
+using ApolloLensLibrary.Signalling;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -26,12 +29,7 @@ namespace ApolloLensSource
     /// </summary>
     public sealed partial class MainPage : Page
     {
-        public bool Logging { get; set; } = true;
-        public bool ConnectAzure { get; set; } = true;
-
-        private string ServerAddress => this.ConnectAzure ? ServerConfig.AwsAddress : ServerConfig.LocalAddress;
-
-        private ICalleeConductor Conductor { get; }
+        private IConductor conductor { get; } = Conductor.Instance;
 
         public MainPage()
         {
@@ -48,80 +46,74 @@ namespace ApolloLensSource
 
             Application.Current.Suspending += async (s, e) =>
             {
-                await this.Conductor.Signaller.SendShutdown();
-                await this.Conductor.Shutdown();
+                await this.conductor.UISignaller.SendShutdown();
+                await this.conductor.Shutdown();
             };
 
-            this.Conductor = this.BuildConductor();
-        }
-
-        private ISignaller BuildSignaller()
-        {
-            var signaller = WebSocketSignaller.CreateSignaller();
-
-            signaller.ConnectionFailed += (s, a) =>
-            {
-                Logger.Log("Connecting to signalling server failed. Try again.");
-            };
-
-            signaller.ReceivedPlainMessage += (s, a) =>
-            {
-                Logger.Log($"Received plain message: {a}");
-            };
-
-            signaller.ReceivedShutdown += async (s, a) =>
-            {
-                Logger.Log("Received shutdown message from peer.");
-                await this.Conductor.Shutdown();
-            };
-
-            return signaller;
-        }
-
-        private ICalleeConductor BuildConductor()
-        {
-            var signaller = this.BuildSignaller();
-            return new CalleeConductor(signaller);
         }
 
         protected override async void OnNavigatedTo(NavigationEventArgs args)
         {
+            var signaller = new WebsocketSignaller();
+
+            this.ConnectToServerButton.Click += async (s, a) =>
+            {
+                this.NotConnected.ToggleVisibility();
+                await signaller.ConnectToServer(ServerConfig.AwsAddress);
+                this.Connected.ToggleVisibility();
+            };
+
+            this.DisconnectFromServerButton.Click += (s, a) =>
+            {
+                this.Connected.ToggleVisibility();
+                signaller.DisconnectFromServer();
+                this.NotConnected.ToggleVisibility();
+            };
+
+            var config = new ConductorConfig()
+            {
+                CoreDispatcher = this.Dispatcher,
+                Signaller = signaller
+            };
+
             Logger.Log("Initializing WebRTC...");
-            await this.Conductor.Initialize(this.Dispatcher);
+            await this.conductor.Initialize(config);
             Logger.Log("Done.");
 
-            var profiles = this.Conductor.GetCaptureProfiles();
-            this.CaptureFormatComboBox.ItemsSource = profiles;
+            var opts = new MediaOptions(
+                new MediaOptions.Init()
+                {
+                    SendVideo = true,
+                });
+            this.conductor.SetMediaOptions(opts);
+
+            this.conductor.UISignaller.ReceivedShutdown += async (s, a) =>
+            {
+                await this.conductor.Shutdown();
+            };
+
+            this.conductor.UISignaller.ReceivedPlain += (s, message) =>
+            {
+                Logger.Log(message);
+            };
+
+            this.CaptureFormatComboBox.ItemsSource = this.conductor.CaptureProfiles;
             this.CaptureFormatComboBox.SelectedIndex = 0;
         }
 
         #region UI_Handlers
 
-        private async void ConnectToServer_Click(object sender, RoutedEventArgs e)
-        {
-            this.NotConnected.ToggleVisibility();
-            await this.Conductor.Signaller.ConnectToServer(this.ServerAddress);
-            this.Connected.ToggleVisibility();
-        }
-
         private async void SayHiButton_Click(object sender, RoutedEventArgs e)
         {
             var message = "Hello, World!";
-            await this.Conductor.Signaller.SendPlainMessage(message);
+            await this.conductor.UISignaller.SendPlain(message);
             Logger.Log($"Send message: {message} to connected peers");
-        }
-
-        private void DisconnectFromServerButton_Click(object sender, RoutedEventArgs e)
-        {
-            this.Connected.ToggleVisibility();
-            this.Conductor.Signaller.DisconnectFromServer();
-            this.NotConnected.ToggleVisibility();
         }
 
         private void CaptureFormatComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var selectedProfile = (this.CaptureFormatComboBox.SelectedItem as MediaWrapper.CaptureProfile);
-            this.Conductor.SetSelectedProfile(selectedProfile);
+            var selectedProfile = (this.CaptureFormatComboBox.SelectedItem as CaptureProfile);
+            this.conductor.SetSelectedProfile(selectedProfile);
         }
 
         #endregion

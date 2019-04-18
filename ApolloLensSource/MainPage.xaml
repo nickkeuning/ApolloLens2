@@ -22,14 +22,9 @@
                 VerticalAlignment="Center"
                 HorizontalAlignment="Center"
                 Visibility="Visible">
-                <ToggleSwitch
-                    x:Name="RemoteServerToggle"
-                    VerticalAlignment="Center"
-                    IsOn="{Binding ConnectAzure, Mode=TwoWay}">Connect to Azure</ToggleSwitch>
                 <Button
                     x:Name="ConnectToServerButton"
                     VerticalAlignment="Center"
-                    Click="ConnectToServer_Click"
                     Content="Connect to Server" />
                 <ComboBox
                     x:Name="CaptureFormatComboBox"
@@ -46,7 +41,6 @@
                 <Button
                     x:Name="DisconnectFromServerButton"
                     Margin="12"
-                    Click="DisconnectFromServerButton_Click"
                     Content="Disconnect from Server" />
                 <Button
                     x:Name="SayHiButton"

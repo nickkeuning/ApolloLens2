@@ -1,24 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
+﻿using ApolloLensLibrary.Signalling;
+using ApolloLensLibrary.Utilities;
+using ApolloLensLibrary.WebRtc;
+using System;
+using WebRtcImplOld;
+using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Controls.Primitives;
-using Windows.UI.Xaml.Data;
-using Windows.UI.Xaml.Input;
-using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
-//using ApolloLensLibrary.Conducting;
-using ApolloLensLibrary.Utilities;
-//using ApolloLensLibrary.Signalling;
-using Windows.UI.Core;
-using ApolloLensLibrary.WebRtc;
-using WebRtcImplOld;
-using ApolloLensLibrary.Signalling;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 

@@ -50,8 +50,10 @@ namespace ApolloLensBasic
                 });
             this.conductor.SetMediaOptions(opts);
 
-            var res = this.conductor.CaptureProfiles;
-            this.CaptureFormatComboBox.ItemsSource = res;
+            this.MediaDeviceComboBox.ItemsSource = this.conductor.MediaDevices;
+            this.MediaDeviceComboBox.SelectedIndex = 0;
+
+            this.CaptureFormatComboBox.ItemsSource = this.conductor.CaptureProfiles;
             this.CaptureFormatComboBox.SelectedIndex = 0;
         }
 
@@ -61,6 +63,7 @@ namespace ApolloLensBasic
             this.HideVideo.ToggleVisibility();
             this.ShowVideo.ToggleVisibility();
             this.CaptureFormatComboBox.ToggleVisibility();
+            this.MediaDeviceComboBox.ToggleVisibility();
         }
 
         private async void ShowVideo_Click(object sender, RoutedEventArgs e)
@@ -79,6 +82,15 @@ namespace ApolloLensBasic
         {
             var selectedProfile = (this.CaptureFormatComboBox.SelectedItem as CaptureProfile);
             this.conductor.SetSelectedProfile(selectedProfile);
+        }
+
+        private void MediaDeviceComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var mediaDevice = (this.MediaDeviceComboBox.SelectedItem as MediaDevice);
+            this.conductor.SetSelectedVideoDevice(mediaDevice);
+
+            this.CaptureFormatComboBox.ItemsSource = this.conductor.CaptureProfiles;
+            this.CaptureFormatComboBox.SelectedIndex = 0;
         }
     }
 }

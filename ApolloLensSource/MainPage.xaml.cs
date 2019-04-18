@@ -97,6 +97,9 @@ namespace ApolloLensSource
                 Logger.Log(message);
             };
 
+            this.MediaDeviceComboBox.ItemsSource = this.conductor.MediaDevices;
+            this.MediaDeviceComboBox.SelectedIndex = 0;
+
             this.CaptureFormatComboBox.ItemsSource = this.conductor.CaptureProfiles;
             this.CaptureFormatComboBox.SelectedIndex = 0;
         }
@@ -117,5 +120,14 @@ namespace ApolloLensSource
         }
 
         #endregion
+
+        private void MediaDeviceComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var mediaDevice = (this.MediaDeviceComboBox.SelectedItem as MediaDevice);
+            this.conductor.SetSelectedVideoDevice(mediaDevice);
+
+            this.CaptureFormatComboBox.ItemsSource = this.conductor.CaptureProfiles;
+            this.CaptureFormatComboBox.SelectedIndex = 0;
+        }
     }
 }

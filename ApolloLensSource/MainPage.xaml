@@ -27,6 +27,11 @@
                     VerticalAlignment="Center"
                     Content="Connect to Server" />
                 <ComboBox
+                    x:Name="MediaDeviceComboBox"
+                    VerticalAlignment="Center"
+                    Margin="12"
+                    SelectionChanged="MediaDeviceComboBox_SelectionChanged" />
+                <ComboBox
                     x:Name="CaptureFormatComboBox"
                     VerticalAlignment="Center"
                     Margin="12"

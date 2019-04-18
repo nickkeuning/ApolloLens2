@@ -129,11 +129,11 @@ namespace WebRtcImplOld
                 await this.peerConnection.SetLocalDescription(localDescription);
                 await this.signaller.SendOffer(localDescription);
                 Logger.Log("Offer sent...");
+
+                await this.SubmitIceCandidatesAsync();
             }
 
             await this.reconfigureLocalStream();
-
-            await this.SubmitIceCandidatesAsync();
         }
 
         public async Task Shutdown()
@@ -405,7 +405,7 @@ namespace WebRtcImplOld
         {
             return this.media
                 .GetVideoCaptureDevices()
-                .Select(dev => new ApolloLensLibrary.WebRtc.MediaDevice()
+                .Select(dev => new MediaDevice()
                 {
                     Name = dev.Name,
                     Id = dev.Id

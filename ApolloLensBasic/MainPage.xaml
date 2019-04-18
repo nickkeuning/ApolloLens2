@@ -41,6 +41,10 @@
                 Style="{StaticResource MarginAndStretch}"
                 Visibility="Collapsed" />
             <ComboBox
+                x:Name="MediaDeviceComboBox"
+                SelectionChanged="MediaDeviceComboBox_SelectionChanged"
+                Style="{StaticResource MarginAndStretch}" />
+            <ComboBox
                 x:Name="CaptureFormatComboBox"
                 SelectionChanged="CaptureFormatComboBox_SelectionChanged"
                 Style="{StaticResource MarginAndStretch}" />

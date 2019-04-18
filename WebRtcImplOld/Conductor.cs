@@ -358,8 +358,6 @@ namespace WebRtcImplOld
             GC.Collect();
         }
 
-
-
         #endregion
 
         #region CaptureParameters

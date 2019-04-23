@@ -1,20 +1,18 @@
-﻿using System;
+﻿using ApolloLensLibrary.WebRtc;
+using Org.WebRtc;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using ApolloLensLibrary.WebRtc;
-using Org.WebRtc;
-using Windows.UI.Core;
-using Windows.UI.Xaml.Controls;
 using Windows.Media.Capture;
 using Windows.Media.MediaProperties;
-using ApolloLensLibrary.Signalling;
+using Windows.UI.Core;
 using MediaElement = Windows.UI.Xaml.Controls.MediaElement;
 
 namespace WebRtcImplNew
 {
-    class Conductor : IConductor
+    public class Conductor : IConductor
     {
         #region Singleton
 
@@ -38,6 +36,8 @@ namespace WebRtcImplNew
         private IMediaStreamTrack localAudioTrack;
 
         private IWebRtcFactory webRtcFactory { get; set; }
+
+        private static readonly object connectionLock = new object();
         private RTCPeerConnection peerConnection { get; set; }
 
         private CoreDispatcher coreDispatcher { get; set; }
@@ -46,7 +46,7 @@ namespace WebRtcImplNew
         private MediaElement remoteVideo { get; set; }
         private MediaElement localVideo { get; set; }
 
-        private List<RTCIceCandidate> iceCandidates { get; } = new List<RTCIceCandidate>();
+        private List<RTCIceCandidate> iceCandidates { get; set; }
 
         #endregion
 
@@ -67,27 +67,27 @@ namespace WebRtcImplNew
         public async Task Initialize(ConductorConfig config)
         {
             if (config == null)
-                throw new ArgumentException();
+                throw new ArgumentException("Config cannon be null");
 
-            this.coreDispatcher = config.CoreDispatcher ?? throw new ArgumentException();
+            this.coreDispatcher
+                = config.CoreDispatcher
+                ?? throw new ArgumentException("Core dispatcher cannot be null");
 
             if (config.Signaller != null)
             {
-                this.signaller = new WebRtcSignaller(
-                    config.Signaller ?? throw new ArgumentException());
+                this.signaller = new WebRtcSignaller(config.Signaller);
 
                 this.signaller.ReceivedIceCandidate += this.signaller_ReceivedIceCandidate;
                 this.signaller.ReceivedAnswer += this.signaller_ReceivedAnswer;
                 this.signaller.ReceivedOffer += this.signaller_ReceivedOffer;
             }
 
-            this.signaller = new WebRtcSignaller(config.Signaller ?? throw new ArgumentException());
             this.localVideo = config.LocalVideo;
             this.remoteVideo = config.RemoteVideo;
 
             var allowed = await this.requestAccessForMediaCapture();
             if (!allowed)
-                throw new Exception();
+                throw new UnauthorizedAccessException("Can't access media");
 
             await Task.Run(() =>
             {
@@ -105,10 +105,6 @@ namespace WebRtcImplNew
 
             this.CaptureProfiles = await this.getVideoCaptureCapabilities(this.selectedDevice.Id);
             this.selectedProfile = this.CaptureProfiles.First();
-
-            this.signaller.ReceivedAnswer += this.signaller_ReceivedAnswer;
-            this.signaller.ReceivedOffer += this.signaller_ReceivedOffer;
-            this.signaller.ReceivedIceCandidate += this.signaller_ReceivedIceCandidate;
         }
 
         public void SetMediaOptions(MediaOptions options)
@@ -137,9 +133,11 @@ namespace WebRtcImplNew
             if (this.peerConnection != null)
                 throw new Exception();
 
-            RTCOfferOptions offerOptions;
-            this.peerConnection = this.buildPeerConnection(this.mediaOptions);
-            offerOptions = new RTCOfferOptions()
+            this.iceCandidates = new List<RTCIceCandidate>();
+
+            this.peerConnection = await this.buildPeerConnection(this.mediaOptions);
+
+            var offerOptions = new RTCOfferOptions()
             {
                 OfferToReceiveAudio = this.mediaOptions.ReceiveAudio,
                 OfferToReceiveVideo = this.mediaOptions.ReceiveVideo
@@ -157,20 +155,25 @@ namespace WebRtcImplNew
                 this.peerConnection.OnIceCandidate -= this.peerConnection_OnIceCandidate;
                 this.peerConnection.OnTrack -= this.peerConnection_OnTrack;
 
-                if (null != this.remoteVideoTrack) this.remoteVideoTrack.Element = null;
-                if (null != this.localVideoTrack) this.localVideoTrack.Element = null;
+                if (this.remoteVideoTrack != null) this.remoteVideoTrack.Element = null;
+                if (this.localVideoTrack != null) this.localVideoTrack.Element = null;
+
                 (this.remoteVideoTrack as IDisposable)?.Dispose();
                 (this.localVideoTrack as IDisposable)?.Dispose();
                 (this.remoteAudioTrack as IDisposable)?.Dispose();
                 (this.localAudioTrack as IDisposable)?.Dispose();
+
                 this.remoteVideoTrack = null;
                 this.localVideoTrack = null;
                 this.remoteAudioTrack = null;
                 this.localAudioTrack = null;
 
+                (this.peerConnection as IDisposable)?.Dispose();
                 this.peerConnection = null;
 
-                GC.Collect(); // Ensure all references are truly dropped.
+                this.iceCandidates = null;
+
+                GC.Collect();
             }
 
             return Task.CompletedTask;
@@ -180,20 +183,22 @@ namespace WebRtcImplNew
 
         #region PeerConnection
 
-        private RTCPeerConnection buildPeerConnection(MediaOptions mediaOptions)
+        private async Task<RTCPeerConnection> buildPeerConnection(MediaOptions mediaOptions)
         {
             var factory = new WebRtcFactory(new WebRtcFactoryConfiguration());
 
-            var peerConnection = new RTCPeerConnection(
-                new RTCConfiguration()
-                {
-                    Factory = factory,
-                    BundlePolicy = RTCBundlePolicy.Balanced,
-                    IceTransportPolicy = RTCIceTransportPolicy.All
-                });
+            var peerConnection = await Task.Run(() =>
+            {
+                return new RTCPeerConnection(
+                    new RTCConfiguration()
+                    {
+                        Factory = factory,
+                        BundlePolicy = RTCBundlePolicy.Balanced,
+                        IceTransportPolicy = RTCIceTransportPolicy.All
+                    });
+            });
 
             peerConnection.OnIceCandidate += this.peerConnection_OnIceCandidate;
-            peerConnection.OnIceGatheringStateChange += this.peerConnection_OnIceGatheringStateChange;
             peerConnection.OnTrack += this.peerConnection_OnTrack;
 
             if (mediaOptions.SendVideo || mediaOptions.LocalLoopback)
@@ -223,17 +228,6 @@ namespace WebRtcImplNew
             return peerConnection;
         }
 
-        private async void peerConnection_OnIceGatheringStateChange()
-        {
-            if (this.peerConnection.IceGatheringState == RTCIceGatheringState.Complete)
-            {
-                foreach (var candidate in this.iceCandidates)
-                {
-                    await this.signaller.SendIceCandidate(candidate);
-                }
-            }
-        }
-
         private void peerConnection_OnTrack(IRTCTrackEvent ev)
         {
             if (ev.Track.Kind == "video")
@@ -257,6 +251,16 @@ namespace WebRtcImplNew
         private void peerConnection_OnIceCandidate(IRTCPeerConnectionIceEvent ev)
         {
             this.iceCandidates.Add((RTCIceCandidate)ev.Candidate);
+        }
+
+        private async Task submitIceCandidatesAsync()
+        {
+            var complete = RTCIceGatheringState.Complete;
+            await Task.Run(() => SpinWait.SpinUntil(() => this.peerConnection?.IceGatheringState == complete));
+            foreach (var candidate in this.iceCandidates)
+            {
+                await this.signaller.SendIceCandidate(candidate);
+            }
         }
 
         private IMediaStreamTrack getLocalVideo(IWebRtcFactory factory)
@@ -308,18 +312,22 @@ namespace WebRtcImplNew
             if (this.peerConnection != null)
                 return;
 
-            this.peerConnection = this.buildPeerConnection(this.mediaOptions);
+            this.iceCandidates = new List<RTCIceCandidate>();
+            this.peerConnection = await this.buildPeerConnection(this.mediaOptions);
 
             await this.peerConnection.SetRemoteDescription(offer);
 
             var answer = await this.peerConnection.CreateAnswer(new RTCAnswerOptions());
             await this.peerConnection.SetLocalDescription(answer);
             await this.signaller.SendAnswer((RTCSessionDescription)answer);
+
+            await this.submitIceCandidatesAsync();
         }
 
         private async void signaller_ReceivedAnswer(object sender, RTCSessionDescription answer)
         {
             await this.peerConnection.SetRemoteDescription(answer);
+            await this.submitIceCandidatesAsync();
         }
 
         #endregion
@@ -328,6 +336,7 @@ namespace WebRtcImplNew
 
         private async Task<bool> requestAccessForMediaCapture()
         {
+            var requester = new MediaCapture();
             var mediaSettings = new MediaCaptureInitializationSettings()
             {
                 AudioDeviceId = "",
@@ -335,27 +344,19 @@ namespace WebRtcImplNew
                 StreamingCaptureMode = StreamingCaptureMode.AudioAndVideo,
                 PhotoCaptureSource = PhotoCaptureSource.VideoPreview
             };
-            MediaCapture mediaAccessRequester = new MediaCapture();
 
-            try
-            {
-                await this.runOnUI(async () =>
+            return await requester
+                .InitializeAsync(mediaSettings)
+                .AsTask()
+                .ContinueWith(initResult =>
                 {
-                    await mediaAccessRequester.InitializeAsync(mediaSettings);
+                    return initResult.Exception == null;
                 });
-            }
-            catch
-            {
-                return false;
-            }
-
-            return true;
         }
 
         private async Task<IList<MediaDevice>> getVideoCaptureDevices()
         {
             var devices = await VideoCapturer.GetDevices();
-
             return devices
                 .Select(dev => new MediaDevice()
                 {
@@ -373,39 +374,27 @@ namespace WebRtcImplNew
                 VideoDeviceId = deviceId
             };
 
-            try
-            {
-                await this.runOnUI(async () =>
+            return await mediaCapture
+                .InitializeAsync(mediaSettings)
+                .AsTask()
+                .ContinueWith(initResult =>
                 {
-                    await mediaCapture.InitializeAsync(mediaSettings);
+                    if (initResult.Exception != null)
+                        return null;
+
+                    return mediaCapture
+                        .VideoDeviceController
+                        .GetAvailableMediaStreamProperties(MediaStreamType.VideoRecord)
+                        .Cast<VideoEncodingProperties>()
+                        .Select(prop => new CaptureProfile()
+                        {
+                            Width = prop.Width,
+                            Height = prop.Height,
+                            FrameRate = prop.FrameRate.Numerator / prop.FrameRate.Denominator,
+                            MrcEnabled = true
+                        })
+                        .ToList();
                 });
-
-                return mediaCapture
-                    .VideoDeviceController
-                    .GetAvailableMediaStreamProperties(MediaStreamType.VideoRecord)
-                    .Cast<VideoEncodingProperties>()
-                    .Select(prop => new CaptureProfile()
-                    {
-                        Width = prop.Width,
-                        Height = prop.Height,
-                        FrameRate = prop.FrameRate.Numerator / prop.FrameRate.Denominator,
-                        MrcEnabled = true
-                    })
-                    .ToList();
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        #endregion
-
-        #region Utility
-
-        private async Task runOnUI(Action action)
-        {
-            await this.coreDispatcher.RunAsync(CoreDispatcherPriority.Normal, () => action());
         }
 
         #endregion

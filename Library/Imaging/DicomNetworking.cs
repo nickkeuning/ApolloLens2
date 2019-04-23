@@ -65,7 +65,7 @@ namespace ApolloLensLibrary.Imaging
             }
         }
 
-        public async Task<IImageCollection> GetStudyAsync(string address)
+        public async Task<IImageCollection> LoadStudyAsync(string address)
         {
             var client = new StreamSocket();
             await client.ConnectAsync(new HostName(address), "8080");
@@ -82,7 +82,7 @@ namespace ApolloLensLibrary.Imaging
                 var numSeries = reader.ReadInt32();
                 foreach (var i in Util.Range(numSeries))
                 {
-                    await LoadSeriesAsync(reader, imageCollection);
+                    await this.LoadSeriesAsync(reader, imageCollection);
                 }
             }
 
@@ -103,7 +103,8 @@ namespace ApolloLensLibrary.Imaging
             imageCollection.CreateSeries(seriesName, numImages);
             foreach (var position in Util.Range(numImages))
             {
-                await LoadImageAsync(reader, seriesName, position, imageCollection);
+                await this.LoadImageAsync(
+                    reader, seriesName, position, imageCollection);
             }
         }
 

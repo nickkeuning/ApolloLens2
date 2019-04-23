@@ -59,7 +59,7 @@ namespace ApolloLensLibrary.Imaging
             var collection = new List<ImageTransferObject>(imagePaths.Count());
             foreach (var path in imagePaths)
             {
-                collection.Add(await ProcessImagePath(directory, path));
+                collection.Add(await this.ProcessImagePath(directory, path));
                 this.OnLoadedImage();
             }
 
@@ -140,7 +140,7 @@ namespace ApolloLensLibrary.Imaging
 
         private async Task<IEnumerable<string>> GetImagePaths(StorageFolder directory)
         {
-            var fileName = await GetDicomDirFileName(directory);
+            var fileName = await this.GetDicomDirFileName(directory);
             if (fileName != null)
             {
                 return await this.GetPathsFromDicomDirFile(directory, fileName);

@@ -93,7 +93,7 @@ namespace ScanServer
 
         private async Task LoadImages()
         {
-            this.Load.Show();
+            this.Load.Hide();
             this.LoadingBlock.Show();
 
             var parser = new DicomParser();

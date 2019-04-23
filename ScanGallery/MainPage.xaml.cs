@@ -64,11 +64,11 @@ namespace ScanGallery
             }
             set
             {
-                var moveImage = index < value ?
+                var moveImage = this.index < value ?
                     new Action(() => this.ImageCollection.MoveNext()) :
                     new Action(() => this.ImageCollection.MovePrevious());
 
-                foreach (var i in Util.Range(Math.Abs(index - value)))
+                foreach (var i in Util.Range(Math.Abs(this.index - value)))
                 {
                     moveImage();
                 }
@@ -131,7 +131,7 @@ namespace ScanGallery
                 this.LoadingBar.Value++;
             };
 
-            this.ImageCollection = await loader.GetStudyAsync(this.ServerAddress);
+            this.ImageCollection = await loader.LoadStudyAsync(this.ServerAddress);
             await this.OnStudyLoaded();
         }
 
@@ -267,9 +267,11 @@ namespace ScanGallery
         {
             try
             {
-                var settings = new MediaCaptureInitializationSettings();
-                settings.StreamingCaptureMode = StreamingCaptureMode.Audio;
-                settings.MediaCategory = MediaCategory.Speech;
+                var settings = new MediaCaptureInitializationSettings
+                {
+                    StreamingCaptureMode = StreamingCaptureMode.Audio,
+                    MediaCategory = MediaCategory.Speech
+                };
                 var capture = new MediaCapture();
 
                 await capture.InitializeAsync(settings);

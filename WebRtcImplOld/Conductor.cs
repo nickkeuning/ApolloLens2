@@ -75,9 +75,9 @@ namespace WebRtcImplOld
                 this.signaller = new WebRtcSignaller(
                     config.Signaller ?? throw new ArgumentException());
 
-                this.signaller.ReceivedIceCandidate += this.Signaller_ReceivedIceCandidate;
-                this.signaller.ReceivedAnswer += this.Signaller_ReceivedAnswer;
-                this.signaller.ReceivedOffer += this.Signaller_ReceivedOffer;
+                this.signaller.ReceivedIceCandidate += this.signaller_ReceivedIceCandidate;
+                this.signaller.ReceivedAnswer += this.signaller_ReceivedAnswer;
+                this.signaller.ReceivedOffer += this.signaller_ReceivedOffer;
             }
 
             this.localVideo = config.LocalVideo;
@@ -130,7 +130,7 @@ namespace WebRtcImplOld
                 await this.signaller.SendOffer(localDescription);
                 Logger.Log("Offer sent...");
 
-                await this.SubmitIceCandidatesAsync();
+                await this.submitIceCandidatesAsync();
             }
 
             await this.reconfigureLocalStream();
@@ -190,7 +190,7 @@ namespace WebRtcImplOld
             this.localVideoTrack = this.localMediaStream.GetVideoTracks().FirstOrDefault();
 
             if (this.mediaOptions.LocalLoopback)
-                await this.RunOnUI(() =>
+                await this.runOnUI(() =>
                 {
                     this.media.AddVideoTrackMediaElementPair(
                         this.localVideoTrack,
@@ -198,20 +198,20 @@ namespace WebRtcImplOld
                         "Local");
                 });
 
-            connection.OnIceCandidate += this.Connection_OnIceCandidate;
-            connection.OnAddStream += this.Connection_OnAddStream;
+            connection.OnIceCandidate += this.connection_OnIceCandidate;
+            connection.OnAddStream += this.connection_OnAddStream;
 
             return connection;
         }
 
-        private async void Connection_OnAddStream(MediaStreamEvent ev)
+        private async void connection_OnAddStream(MediaStreamEvent ev)
         {
             this.remoteVideoTrack = ev.Stream.GetVideoTracks().FirstOrDefault();
             if (this.remoteVideoTrack != null)
             {
                 if (this.mediaOptions.ReceiveVideo)
                 {
-                    await this.RunOnUI(() =>
+                    await this.runOnUI(() =>
                     {
                         this.media.AddVideoTrackMediaElementPair(
                             this.remoteVideoTrack,
@@ -237,12 +237,12 @@ namespace WebRtcImplOld
             this.RemoteStreamAdded?.Invoke(this, EventArgs.Empty);
         }
 
-        private void Connection_OnIceCandidate(RTCPeerConnectionIceEvent ev)
+        private void connection_OnIceCandidate(RTCPeerConnectionIceEvent ev)
         {
             this.iceCandidates.Add(ev.Candidate);
         }
 
-        private async Task SubmitIceCandidatesAsync()
+        private async Task submitIceCandidatesAsync()
         {
             var Complete = RTCIceGatheringState.Complete;
             await Task.Run(() => SpinWait.SpinUntil(() => this.peerConnection?.IceGatheringState == Complete));
@@ -256,7 +256,7 @@ namespace WebRtcImplOld
 
         #region SignallerHandlers
 
-        private async void Signaller_ReceivedOffer(object sender, RTCSessionDescription offer)
+        private async void signaller_ReceivedOffer(object sender, RTCSessionDescription offer)
         {
             Logger.Log("Received offer");
             if (this.peerConnection != null)
@@ -272,16 +272,16 @@ namespace WebRtcImplOld
 
             await this.reconfigureLocalStream();
 
-            await this.SubmitIceCandidatesAsync();
+            await this.submitIceCandidatesAsync();
         }
 
-        private async void Signaller_ReceivedAnswer(object sender, RTCSessionDescription answer)
+        private async void signaller_ReceivedAnswer(object sender, RTCSessionDescription answer)
         {
             Logger.Log("Received answer");
             await this.peerConnection.SetRemoteDescription(answer);
         }
 
-        private async void Signaller_ReceivedIceCandidate(object sender, RTCIceCandidate candidate)
+        private async void signaller_ReceivedIceCandidate(object sender, RTCIceCandidate candidate)
         {
             await this.peerConnection.AddIceCandidate(candidate);
         }
@@ -315,7 +315,7 @@ namespace WebRtcImplOld
                 stream.RemoveTrack(track);
                 track.Stop();
 
-                await this.RunOnUI(() => { this.media.RemoveVideoTrackMediaElementPair(track); });
+                await this.runOnUI(() => { this.media.RemoveVideoTrackMediaElementPair(track); });
 
                 stream = null;
                 GC.Collect();
@@ -414,7 +414,7 @@ namespace WebRtcImplOld
 
         #region Utility
 
-        private async Task RunOnUI(Action action)
+        private async Task runOnUI(Action action)
         {
             await this.coreDispatcher.RunAsync(CoreDispatcherPriority.Normal, () => action());
         }

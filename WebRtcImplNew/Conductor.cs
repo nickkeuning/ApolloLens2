@@ -37,7 +37,6 @@ namespace WebRtcImplNew
 
         private IWebRtcFactory webRtcFactory { get; set; }
 
-        private static readonly object connectionLock = new object();
         private RTCPeerConnection peerConnection { get; set; }
 
         private CoreDispatcher coreDispatcher { get; set; }

@@ -46,25 +46,28 @@ namespace ApolloLensBasic
             this.CaptureFormatComboBox.SelectedIndex = 0;
         }
 
-        private void ToggleVisibilities()
-        {
-            this.LocalVideo.ToggleVisibility();
-            this.HideVideo.ToggleVisibility();
-            this.ShowVideo.ToggleVisibility();
-            this.CaptureFormatComboBox.ToggleVisibility();
-            this.MediaDeviceComboBox.ToggleVisibility();
-        }
-
         private async void ShowVideo_Click(object sender, RoutedEventArgs e)
         {
             await this.conductor.StartCall();
-            this.ToggleVisibilities();
+
+            // set visibilities
+            this.ShowVideo.Hide();
+            this.CaptureFormatComboBox.Hide();
+            this.MediaDeviceComboBox.Hide();
+            this.LocalVideo.Show();
+            this.HideVideo.Show();
         }
 
         private async void HideVideo_Click(object sender, RoutedEventArgs e)
         {
             await this.conductor.Shutdown();
-            this.ToggleVisibilities();
+
+            // set visibilites
+            this.ShowVideo.Show();
+            this.CaptureFormatComboBox.Show();
+            this.MediaDeviceComboBox.Show();
+            this.LocalVideo.Hide();
+            this.HideVideo.Hide();
         }
 
         private void CaptureFormatComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)

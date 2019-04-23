@@ -44,7 +44,7 @@ namespace ScanServer
             await this.LoadImages();
             await this.InitializeServer();
 
-            this.WaitingBlock.ToggleVisibility();           
+            this.WaitingBlock.Show();           
         }
 
         private async Task InitializeServer()
@@ -73,9 +73,9 @@ namespace ScanServer
             await this.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
             {
                 this.LoadingBar.Value = 0;
-                this.WaitingBlock.ToggleVisibility();
-                this.LoadingBar.ToggleVisibility();
-                this.SendingBlock.ToggleVisibility();
+                this.WaitingBlock.Hide();
+                this.LoadingBar.Show();
+                this.SendingBlock.Show();
 
                 try
                 {
@@ -83,9 +83,9 @@ namespace ScanServer
                 }
                 finally
                 {
-                    this.LoadingBar.ToggleVisibility();
-                    this.SendingBlock.ToggleVisibility();
-                    this.WaitingBlock.ToggleVisibility();
+                    this.LoadingBar.Hide();
+                    this.SendingBlock.Hide();
+                    this.WaitingBlock.Show();
                 }
             });
 
@@ -93,15 +93,15 @@ namespace ScanServer
 
         private async Task LoadImages()
         {
-            this.Load.ToggleVisibility();
+            this.Load.Show();
+            this.LoadingBlock.Show();
 
             var parser = new DicomParser();
             parser.ReadyToLoad += async (s, num) =>
             {
                 await this.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
                 {
-                    this.LoadingBlock.ToggleVisibility();
-                    this.LoadingBar.ToggleVisibility();
+                    this.LoadingBar.Show();
 
                     this.LoadingBar.Maximum = num;
                 });
@@ -117,8 +117,8 @@ namespace ScanServer
 
             this.images = await parser.GetStudyRaw();
 
-            this.LoadingBar.ToggleVisibility();
-            this.LoadingBlock.ToggleVisibility();
+            this.LoadingBar.Hide();
+            this.LoadingBlock.Hide();
         }
     }
 }

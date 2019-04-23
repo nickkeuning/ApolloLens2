@@ -116,11 +116,12 @@ namespace ScanGallery
 
         private async void LoadStudy_Click(object sender, RoutedEventArgs e)
         {
+            this.LoadSettings.Hide();
+
             var loader = new DicomNetworking();
             loader.ReadyToLoad += (s, num) =>
             {
-                this.LoadSettings.ToggleVisibility();
-                this.LoadBarPanel.ToggleVisibility();
+                this.LoadBarPanel.Show();
 
                 this.LoadingBar.Maximum = num;
             };
@@ -136,13 +137,14 @@ namespace ScanGallery
 
         private async void LoadStudyLocal_Click(object sender, RoutedEventArgs e)
         {
+            this.LoadSettings.Hide();
+
             var parser = new DicomParser();
             parser.ReadyToLoad += async (s, num) =>
             {
                 await this.RunOnUi(() =>
                 {
-                    this.LoadSettings.ToggleVisibility();
-                    this.LoadBarPanel.ToggleVisibility();
+                    this.LoadBarPanel.Show();
 
                     this.LoadingBar.Maximum = num;
                 });
@@ -182,8 +184,8 @@ namespace ScanGallery
                 });
             };
 
-            this.LoadingScreen.ToggleVisibility();
-            this.RunningScreen.ToggleVisibility();
+            this.LoadingScreen.Hide();
+            this.RunningScreen.Show();
 
             this.OnPropertyChanged(nameof(this.SeriesNamesItems));
             this.SeriesSelect.SelectedIndex = 0;

@@ -46,16 +46,16 @@ namespace ApolloLensSource
 
             this.ConnectToServerButton.Click += async (s, a) =>
             {
-                this.NotConnected.ToggleVisibility();
+                this.NotConnected.Hide();
                 await signaller.ConnectToServer(ServerConfig.AwsAddress);
-                this.Connected.ToggleVisibility();
+                this.Connected.Show();
             };
 
             this.DisconnectFromServerButton.Click += (s, a) =>
             {
-                this.Connected.ToggleVisibility();
+                this.Connected.Hide();
                 signaller.DisconnectFromServer();
-                this.NotConnected.ToggleVisibility();
+                this.NotConnected.Show();
             };
 
             var config = new ConductorConfig()

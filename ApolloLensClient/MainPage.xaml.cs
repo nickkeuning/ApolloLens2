@@ -47,9 +47,9 @@ namespace ApolloLensClient
 
             this.ServerConnectButton.Click += async (s, a) =>
             {
-                this.StartupSettings.ToggleVisibility();
+                this.StartupSettings.Hide();
                 await signaller.ConnectToServer(ServerConfig.AwsAddress);
-                this.ConnectedOptions.ToggleVisibility();
+                this.ConnectedOptions.Show();
             };
 
             var config = new ConductorConfig()

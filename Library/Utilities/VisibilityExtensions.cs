@@ -9,12 +9,6 @@ namespace ApolloLensLibrary.Utilities
 {
     public static class VisibilityExtensions
     {
-        public static void ToggleVisibility(this FrameworkElement element)
-        {
-            var targetVis = element.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
-            element.Visibility = targetVis;
-        }
-
         public static void Hide(this FrameworkElement element)
         {
             element.Visibility = Visibility.Collapsed;
@@ -22,9 +16,7 @@ namespace ApolloLensLibrary.Utilities
 
         public static void Show(this FrameworkElement element)
         {
-            var targetVis = element.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
             element.Visibility = Visibility.Visible;
         }
-
     }
 }

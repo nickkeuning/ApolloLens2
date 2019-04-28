@@ -2,7 +2,7 @@
 using ApolloLensLibrary.Utilities;
 using ApolloLensLibrary.WebRtc;
 using System;
-//using WebRtcImplOld;
+using System.Linq;
 using WebRtcImplNew;
 using Windows.UI.Core;
 using Windows.UI.Xaml;
@@ -23,7 +23,7 @@ namespace ApolloLensSource
         public MainPage()
         {
             this.DataContext = this;
-            this.InitializeComponent();            
+            this.InitializeComponent();
 
             Logger.WriteMessage += async (message) =>
             {
@@ -72,7 +72,7 @@ namespace ApolloLensSource
             var opts = new MediaOptions(
                 new MediaOptions.Init()
                 {
-                    SendVideo = true,
+                    SendVideo = true
                 });
             this.conductor.SetMediaOptions(opts);
 
@@ -86,10 +86,12 @@ namespace ApolloLensSource
                 Logger.Log(message);
             };
 
-            this.MediaDeviceComboBox.ItemsSource = this.conductor.MediaDevices;
+            var devices = await this.conductor.GetMediaDevices();
+            this.MediaDeviceComboBox.ItemsSource = devices;
             this.MediaDeviceComboBox.SelectedIndex = 0;
 
-            this.CaptureFormatComboBox.ItemsSource = this.conductor.CaptureProfiles;
+            this.CaptureFormatComboBox.ItemsSource =
+                await this.conductor.GetCaptureProfiles(devices.First());
             this.CaptureFormatComboBox.SelectedIndex = 0;
         }
 
@@ -104,19 +106,20 @@ namespace ApolloLensSource
 
         private void CaptureFormatComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            //var selectedProfile = (this.CaptureFormatComboBox.SelectedItem as CaptureProfile);
-            //this.conductor.SetSelectedProfile(selectedProfile);
+            var selectedProfile = (this.CaptureFormatComboBox.SelectedItem as CaptureProfile);
+            this.conductor.SetSelectedProfile(selectedProfile);
         }
 
         #endregion
 
-        private void MediaDeviceComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private async void MediaDeviceComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            //var mediaDevice = (this.MediaDeviceComboBox.SelectedItem as MediaDevice);
-            //this.conductor.SetSelectedVideoDevice(mediaDevice);
+            var mediaDevice = (this.MediaDeviceComboBox.SelectedItem as MediaDevice);
+            this.conductor.SetSelectedMediaDevice(mediaDevice);
 
-            //this.CaptureFormatComboBox.ItemsSource = this.conductor.CaptureProfiles;
-            //this.CaptureFormatComboBox.SelectedIndex = 0;
+            this.CaptureFormatComboBox.ItemsSource =
+                await this.conductor.GetCaptureProfiles(mediaDevice);
+            this.CaptureFormatComboBox.SelectedIndex = 0;
         }
     }
 }

@@ -13,11 +13,11 @@ namespace ApolloLensLibrary.WebRtc
 
         IUISignaller UISignaller { get; }
 
-        IList<CaptureProfile> CaptureProfiles { get; }
-        IList<MediaDevice> MediaDevices { get; }
+        Task<IList<CaptureProfile>> GetCaptureProfiles(MediaDevice device);
+        Task<IList<MediaDevice>> GetMediaDevices();
 
         void SetSelectedProfile(CaptureProfile captureProfile);
-        void SetSelectedVideoDevice(MediaDevice mediaDevice);
+        void SetSelectedMediaDevice(MediaDevice mediaDevice);
         void SetMediaOptions(MediaOptions options);
 
         Task Initialize(ConductorConfig config);

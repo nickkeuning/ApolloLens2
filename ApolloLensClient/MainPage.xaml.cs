@@ -2,7 +2,6 @@
 using ApolloLensLibrary.Utilities;
 using ApolloLensLibrary.WebRtc;
 using System;
-//using WebRtcImplOld;
 using WebRtcImplNew;
 using Windows.UI.Core;
 using Windows.UI.Xaml;
@@ -38,7 +37,7 @@ namespace ApolloLensClient
             {
                 await this.conductor.UISignaller.SendShutdown();
                 await this.conductor.Shutdown();
-            };            
+            };
 
         }
 
@@ -65,7 +64,7 @@ namespace ApolloLensClient
             var opts = new MediaOptions(
                 new MediaOptions.Init()
                 {
-                    ReceiveVideo = true,
+                    ReceiveVideo = true
                 });
             this.conductor.SetMediaOptions(opts);
 

@@ -5,6 +5,7 @@ using WebRtcImplNew;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Navigation;
+using System.Linq;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -40,10 +41,12 @@ namespace ApolloLensBasic
                 });
             this.conductor.SetMediaOptions(opts);
 
-            this.MediaDeviceComboBox.ItemsSource = this.conductor.MediaDevices;
+            var devices = await this.conductor.GetMediaDevices();
+            this.MediaDeviceComboBox.ItemsSource = devices;
             this.MediaDeviceComboBox.SelectedIndex = 0;
 
-            this.CaptureFormatComboBox.ItemsSource = this.conductor.CaptureProfiles;
+            this.CaptureFormatComboBox.ItemsSource = 
+                await this.conductor.GetCaptureProfiles(devices.First());
             this.CaptureFormatComboBox.SelectedIndex = 0;
         }
 
@@ -73,17 +76,18 @@ namespace ApolloLensBasic
 
         private void CaptureFormatComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            //var selectedProfile = (this.CaptureFormatComboBox.SelectedItem as CaptureProfile);
-            //this.conductor.SetSelectedProfile(selectedProfile);
+            var selectedProfile = (this.CaptureFormatComboBox.SelectedItem as CaptureProfile);
+            this.conductor.SetSelectedProfile(selectedProfile);
         }
 
-        private void MediaDeviceComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private async void MediaDeviceComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            //var mediaDevice = (this.MediaDeviceComboBox.SelectedItem as MediaDevice);
-            //this.conductor.SetSelectedVideoDevice(mediaDevice);
+            var mediaDevice = (this.MediaDeviceComboBox.SelectedItem as MediaDevice);
+            this.conductor.SetSelectedMediaDevice(mediaDevice);
 
-            //this.CaptureFormatComboBox.ItemsSource = this.conductor.CaptureProfiles;
-            //this.CaptureFormatComboBox.SelectedIndex = 0;
+            this.CaptureFormatComboBox.ItemsSource = 
+                await this.conductor.GetCaptureProfiles(mediaDevice);
+            this.CaptureFormatComboBox.SelectedIndex = 0;
         }
     }
 }

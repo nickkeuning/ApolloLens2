@@ -108,7 +108,7 @@ namespace WebRtcImplOld
             this.selectedProfile = captureProfile;
         }
 
-        public void SetSelectedVideoDevice(MediaDevice mediaDevice)
+        public void SetSelectedMediaDevice(MediaDevice mediaDevice)
         {
             this.selectedDevice = mediaDevice;
         }

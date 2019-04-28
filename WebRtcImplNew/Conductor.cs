@@ -53,8 +53,53 @@ namespace WebRtcImplNew
 
         public event EventHandler RemoteStreamAdded;
 
-        public IList<CaptureProfile> CaptureProfiles { get; private set; }
-        public IList<MediaDevice> MediaDevices { get; private set; }
+        public async Task<IList<CaptureProfile>> GetCaptureProfiles(MediaDevice device)
+        {
+            var mediaCapture = new MediaCapture();
+            var mediaSettings = new MediaCaptureInitializationSettings()
+            {
+                VideoDeviceId = device.Id
+            };
+
+            return await mediaCapture
+                .InitializeAsync(mediaSettings)
+                .AsTask()
+                .ContinueWith(initResult =>
+                {
+                    if (initResult.Exception != null)
+                        return null;
+
+                    return mediaCapture
+                        .VideoDeviceController
+                        .GetAvailableMediaStreamProperties(MediaStreamType.VideoRecord)
+                        .Cast<VideoEncodingProperties>()
+                        .Select(prop => new CaptureProfile()
+                        {
+                            Width = prop.Width,
+                            Height = prop.Height,
+                            FrameRate = prop.FrameRate.Numerator / prop.FrameRate.Denominator,
+                            MrcEnabled = true
+                        })
+                        .GroupBy(profile => profile.ToString())
+                        .Select(grp => grp.First())
+                        .OrderBy(profile => profile.Width * profile.Height)
+                        .ThenBy(profile => profile.FrameRate)
+                        .ToList();
+                });
+        }
+
+        public async Task<IList<MediaDevice>> GetMediaDevices()
+        {
+            var devices = await VideoCapturer.GetDevices();
+            return devices
+                .Select(dev => new MediaDevice()
+                {
+                    Id = dev.Info.Id,
+                    Name = dev.Info.Name
+                })
+                .ToList();
+        }
+
         public IUISignaller UISignaller
         {
             get
@@ -68,9 +113,9 @@ namespace WebRtcImplNew
             if (config == null)
                 throw new ArgumentException("Config cannon be null");
 
-            this.coreDispatcher
-                = config.CoreDispatcher
-                ?? throw new ArgumentException("Core dispatcher cannot be null");
+            this.coreDispatcher =
+                config.CoreDispatcher ?? throw new ArgumentException(
+                    "Core dispatcher cannot be null");
 
             if (config.Signaller != null)
             {
@@ -98,12 +143,6 @@ namespace WebRtcImplNew
                 configuration.VideoFrameProcessingQueue = EventQueue.GetOrCreateThreadQueueByName("VideoFrameProcessingQueue");
                 WebRtcLib.Setup(configuration);
             });
-
-            this.MediaDevices = await this.getVideoCaptureDevices();
-            this.selectedDevice = this.MediaDevices.Last();
-
-            this.CaptureProfiles = await this.getVideoCaptureCapabilities(this.selectedDevice.Id);
-            this.selectedProfile = this.CaptureProfiles.First();
         }
 
         public void SetMediaOptions(MediaOptions options)
@@ -122,7 +161,7 @@ namespace WebRtcImplNew
             this.selectedProfile = captureProfile;
         }
 
-        public void SetSelectedVideoDevice(MediaDevice mediaDevice)
+        public void SetSelectedMediaDevice(MediaDevice mediaDevice)
         {
             this.selectedDevice = mediaDevice;
         }
@@ -143,7 +182,6 @@ namespace WebRtcImplNew
             if (connectToPeer)
             {
                 this.iceCandidates = new List<RTCIceCandidate>();
-
 
                 var offerOptions = new RTCOfferOptions()
                 {
@@ -360,49 +398,6 @@ namespace WebRtcImplNew
                 .ContinueWith(initResult =>
                 {
                     return initResult.Exception == null;
-                });
-        }
-
-        private async Task<IList<MediaDevice>> getVideoCaptureDevices()
-        {
-            var devices = await VideoCapturer.GetDevices();
-            return devices
-                .Select(dev => new MediaDevice()
-                {
-                    Id = dev.Info.Id,
-                    Name = dev.Info.Name
-                })
-                .ToList();
-        }
-
-        private async Task<IList<CaptureProfile>> getVideoCaptureCapabilities(string deviceId)
-        {
-            var mediaCapture = new MediaCapture();
-            var mediaSettings = new MediaCaptureInitializationSettings()
-            {
-                VideoDeviceId = deviceId
-            };
-
-            return await mediaCapture
-                .InitializeAsync(mediaSettings)
-                .AsTask()
-                .ContinueWith(initResult =>
-                {
-                    if (initResult.Exception != null)
-                        return null;
-
-                    return mediaCapture
-                        .VideoDeviceController
-                        .GetAvailableMediaStreamProperties(MediaStreamType.VideoRecord)
-                        .Cast<VideoEncodingProperties>()
-                        .Select(prop => new CaptureProfile()
-                        {
-                            Width = prop.Width,
-                            Height = prop.Height,
-                            FrameRate = prop.FrameRate.Numerator / prop.FrameRate.Denominator,
-                            MrcEnabled = true
-                        })
-                        .ToList();
                 });
         }
 

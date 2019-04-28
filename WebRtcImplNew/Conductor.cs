@@ -100,7 +100,7 @@ namespace WebRtcImplNew
             });
 
             this.MediaDevices = await this.getVideoCaptureDevices();
-            this.selectedDevice = this.MediaDevices.First();
+            this.selectedDevice = this.MediaDevices.Last();
 
             this.CaptureProfiles = await this.getVideoCaptureCapabilities(this.selectedDevice.Id);
             this.selectedProfile = this.CaptureProfiles.First();
@@ -132,19 +132,29 @@ namespace WebRtcImplNew
             if (this.peerConnection != null)
                 throw new Exception();
 
-            this.iceCandidates = new List<RTCIceCandidate>();
-
             this.peerConnection = await this.buildPeerConnection(this.mediaOptions);
 
-            var offerOptions = new RTCOfferOptions()
-            {
-                OfferToReceiveAudio = this.mediaOptions.ReceiveAudio,
-                OfferToReceiveVideo = this.mediaOptions.ReceiveVideo
-            };
+            var connectToPeer =
+                this.mediaOptions.SendAudio ||
+                this.mediaOptions.ReceiveAudio ||
+                this.mediaOptions.SendVideo ||
+                this.mediaOptions.ReceiveVideo;
 
-            var offer = await this.peerConnection.CreateOffer(offerOptions);
-            await this.peerConnection.SetLocalDescription(offer);
-            await this.signaller.SendOffer((RTCSessionDescription)offer);
+            if (connectToPeer)
+            {
+                this.iceCandidates = new List<RTCIceCandidate>();
+
+
+                var offerOptions = new RTCOfferOptions()
+                {
+                    OfferToReceiveAudio = this.mediaOptions.ReceiveAudio,
+                    OfferToReceiveVideo = this.mediaOptions.ReceiveVideo
+                };
+
+                var offer = await this.peerConnection.CreateOffer(offerOptions);
+                await this.peerConnection.SetLocalDescription(offer);
+                await this.signaller.SendOffer((RTCSessionDescription)offer);
+            }
         }
 
         public Task Shutdown()
@@ -184,47 +194,47 @@ namespace WebRtcImplNew
 
         private async Task<RTCPeerConnection> buildPeerConnection(MediaOptions mediaOptions)
         {
-            var factory = new WebRtcFactory(new WebRtcFactoryConfiguration());
-
-            var peerConnection = await Task.Run(() =>
+            return await Task.Run(() =>
             {
-                return new RTCPeerConnection(
+                var factory = new WebRtcFactory(new WebRtcFactoryConfiguration());
+
+                var peerConnection = new RTCPeerConnection(
                     new RTCConfiguration()
                     {
                         Factory = factory,
                         BundlePolicy = RTCBundlePolicy.Balanced,
                         IceTransportPolicy = RTCIceTransportPolicy.All
                     });
+
+                peerConnection.OnIceCandidate += this.peerConnection_OnIceCandidate;
+                peerConnection.OnTrack += this.peerConnection_OnTrack;
+
+                if (mediaOptions.SendVideo || mediaOptions.LocalLoopback)
+                {
+                    this.localVideoTrack = this.getLocalVideo(factory);
+                }
+
+                if (mediaOptions.SendAudio)
+                {
+                    this.localAudioTrack = this.getLocalAudio(factory);
+                }
+
+                if (mediaOptions.SendVideo)
+                {
+                    peerConnection.AddTrack(this.localVideoTrack);
+                }
+                if (mediaOptions.SendAudio)
+                {
+                    peerConnection.AddTrack(this.localAudioTrack);
+                }
+
+                if (mediaOptions.LocalLoopback)
+                {
+                    this.localVideoTrack.Element = MediaElementMaker.Bind(this.localVideo);
+                }
+
+                return peerConnection;
             });
-
-            peerConnection.OnIceCandidate += this.peerConnection_OnIceCandidate;
-            peerConnection.OnTrack += this.peerConnection_OnTrack;
-
-            if (mediaOptions.SendVideo || mediaOptions.LocalLoopback)
-            {
-                this.localVideoTrack = this.getLocalVideo(factory);
-            }
-
-            if (mediaOptions.SendAudio)
-            {
-                this.localAudioTrack = this.getLocalAudio(factory);
-            }
-
-            if (mediaOptions.SendVideo)
-            {
-                peerConnection.AddTrack(this.localVideoTrack);
-            }
-            if (mediaOptions.SendAudio)
-            {
-                peerConnection.AddTrack(this.localAudioTrack);
-            }
-
-            if (mediaOptions.LocalLoopback)
-            {
-                this.localVideoTrack.Element = MediaElementMaker.Bind(this.localVideo);
-            }
-
-            return peerConnection;
         }
 
         private void peerConnection_OnTrack(IRTCTrackEvent ev)

@@ -104,19 +104,19 @@ namespace ApolloLensSource
 
         private void CaptureFormatComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var selectedProfile = (this.CaptureFormatComboBox.SelectedItem as CaptureProfile);
-            this.conductor.SetSelectedProfile(selectedProfile);
+            //var selectedProfile = (this.CaptureFormatComboBox.SelectedItem as CaptureProfile);
+            //this.conductor.SetSelectedProfile(selectedProfile);
         }
 
         #endregion
 
         private void MediaDeviceComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var mediaDevice = (this.MediaDeviceComboBox.SelectedItem as MediaDevice);
-            this.conductor.SetSelectedVideoDevice(mediaDevice);
+            //var mediaDevice = (this.MediaDeviceComboBox.SelectedItem as MediaDevice);
+            //this.conductor.SetSelectedVideoDevice(mediaDevice);
 
-            this.CaptureFormatComboBox.ItemsSource = this.conductor.CaptureProfiles;
-            this.CaptureFormatComboBox.SelectedIndex = 0;
+            //this.CaptureFormatComboBox.ItemsSource = this.conductor.CaptureProfiles;
+            //this.CaptureFormatComboBox.SelectedIndex = 0;
         }
     }
 }

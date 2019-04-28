@@ -1,6 +1,7 @@
 ﻿using ApolloLensLibrary.Utilities;
 using ApolloLensLibrary.WebRtc;
-using WebRtcImplOld;
+//using WebRtcImplOld;
+using WebRtcImplNew;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Navigation;
@@ -72,17 +73,17 @@ namespace ApolloLensBasic
 
         private void CaptureFormatComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var selectedProfile = (this.CaptureFormatComboBox.SelectedItem as CaptureProfile);
-            this.conductor.SetSelectedProfile(selectedProfile);
+            //var selectedProfile = (this.CaptureFormatComboBox.SelectedItem as CaptureProfile);
+            //this.conductor.SetSelectedProfile(selectedProfile);
         }
 
         private void MediaDeviceComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var mediaDevice = (this.MediaDeviceComboBox.SelectedItem as MediaDevice);
-            this.conductor.SetSelectedVideoDevice(mediaDevice);
+            //var mediaDevice = (this.MediaDeviceComboBox.SelectedItem as MediaDevice);
+            //this.conductor.SetSelectedVideoDevice(mediaDevice);
 
-            this.CaptureFormatComboBox.ItemsSource = this.conductor.CaptureProfiles;
-            this.CaptureFormatComboBox.SelectedIndex = 0;
+            //this.CaptureFormatComboBox.ItemsSource = this.conductor.CaptureProfiles;
+            //this.CaptureFormatComboBox.SelectedIndex = 0;
         }
     }
 }

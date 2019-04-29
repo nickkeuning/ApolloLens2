@@ -11,8 +11,15 @@ using Windows.Storage.Streams;
 
 namespace ApolloLensLibrary.Imaging
 {
+    /// <summary>
+    /// Defines a two sided protocol for sending and 
+    /// receiving a Dicom study over input and output
+    /// streams. 
+    /// </summary>
     public class DicomNetworking
     {
+        #region Events
+
         public event EventHandler<int> ReadyToLoad;
         public event EventHandler LoadedImage;
         public event EventHandler SentImage;
@@ -32,14 +39,18 @@ namespace ApolloLensLibrary.Imaging
             this.SentImage?.Invoke(this, EventArgs.Empty);
         }
 
-        public async Task SendStudyAsync(IDictionary<string, IEnumerable<ImageTransferObject>> images, StreamSocket socket)
+        #endregion
+
+        #region Interface
+
+        public async Task SendStudyAsync(IDictionary<string, IEnumerable<ImageTransferObject>> images, IOutputStream stream)
         {
             var numImages = images
                 .Values
                 .SelectMany(series => series)
                 .Count();
                 
-            using (var writer = new DataWriter(socket.OutputStream))
+            using (var writer = new DataWriter(stream))
             {
                 writer.WriteInt32(numImages);
                 writer.WriteInt32(images.Keys.Count);
@@ -65,14 +76,11 @@ namespace ApolloLensLibrary.Imaging
             }
         }
 
-        public async Task<IImageCollection> LoadStudyAsync(string address)
+        public async Task<IImageCollection> LoadStudyAsync(IInputStream stream)
         {
-            var client = new StreamSocket();
-            await client.ConnectAsync(new HostName(address), "8080");
-
             var imageCollection = ImageCollection.Create();
 
-            using (var reader = new DataReader(client.InputStream))
+            using (var reader = new DataReader(stream))
             {
                 await reader.LoadAsync(sizeof(int) * 2);
 
@@ -88,6 +96,8 @@ namespace ApolloLensLibrary.Imaging
 
             return imageCollection;
         }
+
+        #endregion
 
         private async Task LoadSeriesAsync(DataReader reader, IImageCollection imageCollection)
         {

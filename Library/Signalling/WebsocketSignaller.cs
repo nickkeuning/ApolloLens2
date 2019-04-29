@@ -5,6 +5,11 @@ using Windows.Storage.Streams;
 
 namespace ApolloLensLibrary.Signalling
 {
+    /// <summary>
+    /// An implementation of the IBasicSignaller interface
+    /// using websockets. Very simple code. Very simple
+    /// corresponding server is also possible.
+    /// </summary>
     public class WebsocketSignaller : IBasicSignaller
     {
         private MessageWebSocket WebSocket { get; set; }
@@ -12,6 +17,13 @@ namespace ApolloLensLibrary.Signalling
         public event EventHandler ConnectionFailed;
         public event EventHandler<string> ReceivedMessage;
 
+        /// <summary>
+        /// Connect to the server at the specified address.
+        /// </summary>
+        /// <param name="address">
+        /// Needs to be in the form "ws://..." or "wss://..."
+        /// </param>
+        /// <returns></returns>
         public async Task ConnectToServer(string address)
         {
             try
@@ -35,9 +47,13 @@ namespace ApolloLensLibrary.Signalling
 
         public async Task SendMessage(string message)
         {
+            // This should probably throw an exception
+            // instead of quietly returning.
             if (this.WebSocket == null)
                 return;
 
+            // Use a datawriter to write the specified 
+            // message to the websocket.
             using (var dataWriter = new DataWriter(this.WebSocket.OutputStream))
             {
                 dataWriter.WriteString(message);
@@ -46,10 +62,14 @@ namespace ApolloLensLibrary.Signalling
             }
         }
 
+
+
         private void WebSocket_MessageReceived(MessageWebSocket sender, MessageWebSocketMessageReceivedEventArgs args)
         {
             try
             {
+                // Use a datareader to read the message 
+                // out of the websocket args.
                 using (DataReader dataReader = args.GetDataReader())
                 {
                     dataReader.UnicodeEncoding = UnicodeEncoding.Utf8;
@@ -59,7 +79,10 @@ namespace ApolloLensLibrary.Signalling
             }
             catch (Exception ex)
             {
-                Windows.Web.WebErrorStatus webErrorStatus = WebSocketError.GetStatus(ex.GetBaseException().HResult);
+                // This should probably rethrow since exceptions
+                // are currently silenced.
+                Windows.Web.WebErrorStatus webErrorStatus = 
+                    WebSocketError.GetStatus(ex.GetBaseException().HResult);
             }
         }
 

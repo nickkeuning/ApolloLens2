@@ -67,23 +67,23 @@ namespace ApolloLensLibrary.Imaging
             }
         }
 
-        public void AddImageToSeries(byte[] image, string seriesName, int position, int width, int height)
+        public void AddImageToSeries(ImageTransferObject image)
         {
-            if (!this.Images.ContainsKey(seriesName))
+            if (!this.Images.ContainsKey(image.Series))
                 throw new ArgumentException();
-            if (position < 0 || position >= this.Images[seriesName].Count())
+            if (image.Position < 0 || image.Position >= this.Images[image.Series].Count())
                 throw new ArgumentException();
 
-            var smartBitmap = new SmartBitmap(image, width, height);
+            var smartBitmap = new SmartBitmap(image.Image, image.Width, image.Height);
             smartBitmap.ImageUpdated += (s, e) =>
             {
-                if (seriesName == this.CurrentSeries && position == this.CurrentIndex)
+                if (image.Series == this.CurrentSeries && image.Position == this.CurrentIndex)
                 {
                     this.OnImageChanged();
                 }
             };
 
-            this.Images[seriesName][position] = smartBitmap;
+            this.Images[image.Series][image.Position] = smartBitmap;
         }
 
         public IEnumerable<string> GetSeriesNames()
@@ -193,7 +193,7 @@ namespace ApolloLensLibrary.Imaging
         private SmartBitmap GetPreviousImage(int offset)
         {
             return this.GetCurrentSeries()?.ElementAtOrDefault(this.CurrentIndex - offset);
-        }
+        }        
 
         #endregion
     }
@@ -212,7 +212,7 @@ namespace ApolloLensLibrary.Imaging
 
         // Building
         void CreateSeries(string SeriesName, int SeriesSize);
-        void AddImageToSeries(byte[] image, string seriesName, int position, int width, int height);
+        void AddImageToSeries(ImageTransferObject image);
 
         // Series info
         IEnumerable<string> GetSeriesNames();

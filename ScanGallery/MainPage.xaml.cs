@@ -131,7 +131,10 @@ namespace ScanGallery
                 this.LoadingBar.Value++;
             };
 
-            this.ImageCollection = await loader.LoadStudyAsync(this.ServerAddress);
+            var client = new StreamSocket();
+            await client.ConnectAsync(new HostName(this.ServerAddress), "8080");
+
+            this.ImageCollection = await loader.LoadStudyAsync(client.InputStream);
             await this.OnStudyLoaded();
         }
 

@@ -79,7 +79,7 @@ namespace ScanServer
 
                 try
                 {
-                    await this.dicomSender.SendStudyAsync(this.images, args.Socket);
+                    await this.dicomSender.SendStudyAsync(this.images, args.Socket.OutputStream);
                 }
                 finally
                 {

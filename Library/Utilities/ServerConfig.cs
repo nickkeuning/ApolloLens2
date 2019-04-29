@@ -1,5 +1,8 @@
 ﻿namespace ApolloLensLibrary.Utilities
 {
+    /// <summary>
+    /// Static class to hold configuration data.
+    /// </summary>
     public static class ServerConfig
     {
         public static readonly string AwsAddress = "ws://apollosignaller-env.p47zti3ztv.us-east-2.elasticbeanstalk.com/";

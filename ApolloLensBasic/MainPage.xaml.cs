@@ -41,7 +41,7 @@ namespace ApolloLensBasic
                 });
             this.conductor.SetMediaOptions(opts);
 
-            var devices = await this.conductor.GetMediaDevices();
+            var devices = await this.conductor.GetVideoDevices();
             this.MediaDeviceComboBox.ItemsSource = devices;
             this.MediaDeviceComboBox.SelectedIndex = 0;
 
@@ -82,7 +82,7 @@ namespace ApolloLensBasic
 
         private async void MediaDeviceComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var mediaDevice = (this.MediaDeviceComboBox.SelectedItem as MediaDevice);
+            var mediaDevice = (this.MediaDeviceComboBox.SelectedItem as VideoDevice);
             this.conductor.SetSelectedMediaDevice(mediaDevice);
 
             this.CaptureFormatComboBox.ItemsSource = 

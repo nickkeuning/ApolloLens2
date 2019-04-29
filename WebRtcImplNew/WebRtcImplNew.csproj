@@ -133,7 +133,7 @@
       <Version>12.0.2</Version>
     </PackageReference>
     <PackageReference Include="WebRtc">
-      <Version>1.71.0.4-Alpha</Version>
+      <Version>1.71.0.5-Alpha</Version>
     </PackageReference>
   </ItemGroup>
   <ItemGroup>

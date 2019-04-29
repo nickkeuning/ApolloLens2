@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Windows.UI.Core;
 using Windows.UI.Xaml.Controls;
-using MediaDevice = ApolloLensLibrary.WebRtc.MediaDevice;
+using VideoDevice = ApolloLensLibrary.WebRtc.VideoDevice;
 
 namespace WebRtcImplOld
 {
@@ -43,7 +43,7 @@ namespace WebRtcImplOld
         private RTCPeerConnection peerConnection { get; set; }
 
         private CaptureProfile selectedProfile { get; set; }
-        private MediaDevice selectedDevice { get; set; }
+        private VideoDevice selectedDevice { get; set; }
 
         private List<RTCIceCandidate> iceCandidates { get; } = new List<RTCIceCandidate>();
 
@@ -54,7 +54,7 @@ namespace WebRtcImplOld
         public event EventHandler RemoteStreamAdded;
 
         public IList<CaptureProfile> CaptureProfiles { get; private set; }
-        public IList<MediaDevice> MediaDevices { get; private set; }
+        public IList<VideoDevice> MediaDevices { get; private set; }
         public IUISignaller UISignaller
         {
             get
@@ -108,7 +108,7 @@ namespace WebRtcImplOld
             this.selectedProfile = captureProfile;
         }
 
-        public void SetSelectedMediaDevice(MediaDevice mediaDevice)
+        public void SetSelectedMediaDevice(VideoDevice mediaDevice)
         {
             this.selectedDevice = mediaDevice;
         }
@@ -378,7 +378,7 @@ namespace WebRtcImplOld
                 );
         }
 
-        private async Task<IList<CaptureProfile>> getCaptureProfiles(MediaDevice mediaDevice)
+        private async Task<IList<CaptureProfile>> getCaptureProfiles(VideoDevice mediaDevice)
         {
             var videoDevice = this.media
                 .GetVideoCaptureDevices()
@@ -399,11 +399,11 @@ namespace WebRtcImplOld
                 .ToList();
         }
 
-        private IEnumerable<MediaDevice> getMediaDevices()
+        private IEnumerable<VideoDevice> getMediaDevices()
         {
             return this.media
                 .GetVideoCaptureDevices()
-                .Select(dev => new MediaDevice()
+                .Select(dev => new VideoDevice()
                 {
                     Name = dev.Name,
                     Id = dev.Id

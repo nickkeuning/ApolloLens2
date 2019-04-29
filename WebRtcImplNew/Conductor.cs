@@ -28,7 +28,7 @@ namespace WebRtcImplNew
         private MediaOptions mediaOptions { get; set; }
 
         private CaptureProfile selectedProfile { get; set; }
-        private MediaDevice selectedDevice { get; set; }
+        private VideoDevice selectedDevice { get; set; }
 
         private IMediaStreamTrack remoteVideoTrack;
         private IMediaStreamTrack localVideoTrack;
@@ -51,9 +51,7 @@ namespace WebRtcImplNew
 
         #region Interface
 
-        public event EventHandler RemoteStreamAdded;
-
-        public async Task<IList<CaptureProfile>> GetCaptureProfiles(MediaDevice device)
+        public async Task<IList<CaptureProfile>> GetCaptureProfiles(VideoDevice device)
         {
             var mediaCapture = new MediaCapture();
             var mediaSettings = new MediaCaptureInitializationSettings()
@@ -88,11 +86,11 @@ namespace WebRtcImplNew
                 });
         }
 
-        public async Task<IList<MediaDevice>> GetMediaDevices()
+        public async Task<IList<VideoDevice>> GetVideoDevices()
         {
             var devices = await VideoCapturer.GetDevices();
             return devices
-                .Select(dev => new MediaDevice()
+                .Select(dev => new VideoDevice()
                 {
                     Id = dev.Info.Id,
                     Name = dev.Info.Name
@@ -161,7 +159,7 @@ namespace WebRtcImplNew
             this.selectedProfile = captureProfile;
         }
 
-        public void SetSelectedMediaDevice(MediaDevice mediaDevice)
+        public void SetSelectedMediaDevice(VideoDevice mediaDevice)
         {
             this.selectedDevice = mediaDevice;
         }

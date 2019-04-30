@@ -45,8 +45,6 @@ namespace WebRtcImplNew
         private MediaElement remoteVideo { get; set; }
         private MediaElement localVideo { get; set; }
 
-        private List<RTCIceCandidate> iceCandidates { get; set; }
-
         #endregion
 
         #region Interface
@@ -179,8 +177,6 @@ namespace WebRtcImplNew
 
             if (connectToPeer)
             {
-                this.iceCandidates = new List<RTCIceCandidate>();
-
                 var offerOptions = new RTCOfferOptions()
                 {
                     OfferToReceiveAudio = this.mediaOptions.ReceiveAudio,
@@ -216,8 +212,6 @@ namespace WebRtcImplNew
                 (this.peerConnection as IDisposable)?.Dispose();
                 this.peerConnection = null;
 
-                this.iceCandidates = null;
-
                 GC.Collect();
             }
 
@@ -242,7 +236,6 @@ namespace WebRtcImplNew
                         IceTransportPolicy = RTCIceTransportPolicy.All
                     });
 
-                peerConnection.OnIceCandidate += this.peerConnection_OnIceCandidate;
                 peerConnection.OnTrack += this.peerConnection_OnTrack;
 
                 if (mediaOptions.SendVideo || mediaOptions.LocalLoopback)
@@ -293,19 +286,9 @@ namespace WebRtcImplNew
 
         }
 
-        private void peerConnection_OnIceCandidate(IRTCPeerConnectionIceEvent ev)
+        private async void peerConnection_OnIceCandidate(IRTCPeerConnectionIceEvent ev)
         {
-            this.iceCandidates.Add((RTCIceCandidate)ev.Candidate);
-        }
-
-        private async Task submitIceCandidatesAsync()
-        {
-            var complete = RTCIceGatheringState.Complete;
-            await Task.Run(() => SpinWait.SpinUntil(() => this.peerConnection?.IceGatheringState == complete));
-            foreach (var candidate in this.iceCandidates)
-            {
-                await this.signaller.SendIceCandidate(candidate);
-            }
+            await this.signaller.SendIceCandidate((RTCIceCandidate)ev.Candidate);
         }
 
         private IMediaStreamTrack getLocalVideo(IWebRtcFactory factory)
@@ -357,7 +340,6 @@ namespace WebRtcImplNew
             if (this.peerConnection != null)
                 return;
 
-            this.iceCandidates = new List<RTCIceCandidate>();
             this.peerConnection = await this.buildPeerConnection(this.mediaOptions);
 
             await this.peerConnection.SetRemoteDescription(offer);
@@ -366,13 +348,13 @@ namespace WebRtcImplNew
             await this.peerConnection.SetLocalDescription(answer);
             await this.signaller.SendAnswer((RTCSessionDescription)answer);
 
-            await this.submitIceCandidatesAsync();
+            this.peerConnection.OnIceCandidate += this.peerConnection_OnIceCandidate;
         }
 
         private async void signaller_ReceivedAnswer(object sender, RTCSessionDescription answer)
         {
             await this.peerConnection.SetRemoteDescription(answer);
-            await this.submitIceCandidatesAsync();
+            this.peerConnection.OnIceCandidate += this.peerConnection_OnIceCandidate;
         }
 
         #endregion

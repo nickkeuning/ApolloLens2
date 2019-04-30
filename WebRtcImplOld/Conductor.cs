@@ -419,6 +419,16 @@ namespace WebRtcImplOld
             await this.coreDispatcher.RunAsync(CoreDispatcherPriority.Normal, () => action());
         }
 
+        public Task<IList<CaptureProfile>> GetCaptureProfiles(VideoDevice device)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IList<VideoDevice>> GetVideoDevices()
+        {
+            throw new NotImplementedException();
+        }
+
         #endregion
     }
 }

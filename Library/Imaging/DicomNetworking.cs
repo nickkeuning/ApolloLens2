@@ -131,7 +131,14 @@ namespace ApolloLensLibrary.Imaging
             reader.ReadBytes(imageBytes);
 
             imageCollection.AddImageToSeries(
-                imageBytes, seriesName, position, width, height);
+                new ImageTransferObject()
+                {
+                    Image = imageBytes,
+                    Series = seriesName,
+                    Position = position,
+                    Width = width,
+                    Height = height
+                });
             this.OnLoadedImage();
         }
     }

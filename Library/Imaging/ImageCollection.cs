@@ -77,7 +77,8 @@ namespace ApolloLensLibrary.Imaging
             var smartBitmap = new SmartBitmap(image.Image, image.Width, image.Height);
             smartBitmap.ImageUpdated += (s, e) =>
             {
-                if (image.Series == this.CurrentSeries && image.Position == this.CurrentIndex)
+                if (image.Series == this.CurrentSeries 
+                    && image.Position == this.CurrentIndex)
                 {
                     this.OnImageChanged();
                 }

@@ -291,6 +291,13 @@ namespace WebRtcImplNew
             await this.signaller.SendIceCandidate((RTCIceCandidate)ev.Candidate);
         }
 
+        /// <summary>
+        /// Accesses the local video track, specified by
+        /// this.selectedDevice and this.selectedProfile.
+        /// MUST NOT BE CALLED FROM THE UI THREAD.
+        /// </summary>
+        /// <param name="factory"></param>
+        /// <returns></returns>
         private IMediaStreamTrack getLocalVideo(IWebRtcFactory factory)
         {
             IReadOnlyList<IConstraint> mandatoryConstraints = new List<IConstraint>() {
@@ -304,9 +311,10 @@ namespace WebRtcImplNew
             IReadOnlyList<IConstraint> optionalConstraints = new List<IConstraint>();
             var mediaConstraints = new MediaConstraints(mandatoryConstraints, optionalConstraints);
 
+            // this will throw a very unhelpful exception if called from the UI thread
             var videoCapturer = VideoCapturer.Create(this.selectedDevice.Name, this.selectedDevice.Id, false);
 
-            VideoOptions options = new VideoOptions()
+            var options = new VideoOptions()
             {
                 Factory = factory,
                 Capturer = videoCapturer,
@@ -316,12 +324,21 @@ namespace WebRtcImplNew
             return MediaStreamTrack.CreateVideoTrack("LocalVideo", videoTrackSource);
         }
 
+        /// <summary>
+        /// Accesses the local audio track as specified
+        /// by the operating system.
+        /// MUST NOT BE CALLED FROM THE UI THREAD.
+        /// </summary>
+        /// <param name="factory"></param>
+        /// <returns></returns>
         private IMediaStreamTrack getLocalAudio(IWebRtcFactory factory)
         {
-            AudioOptions audioOptions = new AudioOptions()
+            var audioOptions = new AudioOptions()
             {
                 Factory = factory
             };
+
+            // this will throw a very unhelpful exception if called from the UI thread
             var audioTrackSource = AudioTrackSource.Create(audioOptions);
             return MediaStreamTrack.CreateAudioTrack("LocalAudio", audioTrackSource);
         }

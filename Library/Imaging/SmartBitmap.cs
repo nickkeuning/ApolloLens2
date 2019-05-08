@@ -9,9 +9,11 @@ using Windows.Storage.Streams;
 namespace ApolloLensLibrary.Imaging
 {
     /// <summary>
-    /// Super simple interface for getting an image with a given brightness and contrast.
+    /// Super simple interface for getting an image with
+    /// a given brightness and contrast.
     /// Saves an original, so changes are non destructive.
-    /// Caches a modified image to avoid recalculating requests for the same b and c.
+    /// Caches a modified image to avoid recalculating 
+    /// requests for the same brightness and contrast
     /// </summary>
     public class SmartBitmap
     {
@@ -26,6 +28,11 @@ namespace ApolloLensLibrary.Imaging
         public int Width { get; }
         public int Height { get; }
 
+        /// <summary>
+        /// Fired when an update to the brightness
+        /// and / or contrast completes and each
+        /// parameter is currently valid.
+        /// </summary>
         public event EventHandler ImageUpdated;
 
         public SmartBitmap(byte[] image, int width, int height)
@@ -45,6 +52,16 @@ namespace ApolloLensLibrary.Imaging
             return this.CurrentBytes.AsBuffer();
         }
 
+        /// <summary>
+        /// Pushes the work of recalculating the image for
+        /// a new contrast and brightness to a background 
+        /// thread with Task.Run(() => {});
+        /// Only fires the event changed handler if the
+        /// brightness and contrast calculated are still
+        /// valid upon completion.
+        /// </summary>
+        /// <param name="contrast"></param>
+        /// <param name="brightness"></param>
         public void AdjustImage(Contrast contrast, Brightness brightness)
         {
             if (!this.SetBrightnessAndContrast(contrast, brightness))

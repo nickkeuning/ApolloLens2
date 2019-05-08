@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 
 namespace ApolloLensLibrary.Imaging
 {
+    /// <summary>
+    /// Minimum data needed to describe an image for
+    /// transfer out of DicomParser or over DicomNetworking
+    /// </summary>
     public class ImageTransferObject
     {
         public byte[] Image { get; set; }

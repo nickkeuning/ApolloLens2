@@ -9,7 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "ws": "^6.1.4"
+    "ws": "^6.1.4",
+    "ip": "1.1.5"
   },
   "engines": {
     "node": "10.14.1"

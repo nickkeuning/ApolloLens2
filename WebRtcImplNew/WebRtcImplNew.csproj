@@ -130,7 +130,7 @@
       <Version>6.2.8</Version>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json">
-      <Version>12.0.2</Version>
+      <Version>13.0.1</Version>
     </PackageReference>
     <PackageReference Include="WebRtc">
       <Version>1.71.0.5-Alpha</Version>
